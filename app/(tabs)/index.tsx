@@ -169,6 +169,15 @@ export default function Dashboard() {
           />
         </View>
 
+        {/* Streak-at-risk hint when a bad habit has been logged today.
+            Streak transitions happen at daily reset; this gives the
+            user immediate feedback that today won't extend the streak. */}
+        {badHabits.some((h) => h.is_done) ? (
+          <Text style={[styles.atRisk, { color: theme.colors.danger }]}>
+            Streak at risk — today won't count.
+          </Text>
+        ) : null}
+
         {/* Level circle */}
         <View style={styles.circleWrap}>
           <LevelCircle
@@ -315,6 +324,7 @@ const styles = StyleSheet.create({
   header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   iconBtn:        { padding: 4 },
   brand:          { fontSize: 18, fontWeight: '800', letterSpacing: 0.5 },
+  atRisk:         { fontSize: 12, fontWeight: '700', letterSpacing: 1, textAlign: 'center', textTransform: 'uppercase' },
   circleWrap:     { alignItems: 'center', gap: 12, marginVertical: 8 },
   xpRead:         { fontSize: 13, letterSpacing: 0.5 },
   section:        { gap: 10 },

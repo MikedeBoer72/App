@@ -18,7 +18,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { BadHabit, Profile, Task } from './types';
 import { applyDayComplete, applyDayMiss } from './streak';
-import { streakBonusXp, applyXpDelta } from './xp';
+import { applyXpDelta, dailyTaskXpAwarded, streakBonusXp } from './xp';
 
 // ---------------------------------------------------------------------------
 // Pure helpers
@@ -199,18 +199,25 @@ async function closeOutDay(opts: {
   const badHabits = (rawHabits ?? []) as BadHabit[];
   const summary = summarizeDay({ tasks, badHabits });
 
+  // Net XP earned during the day = task XP (re-clamped to the 300/day
+  // cap in completion order) - sum of bad-habit penalties applied
+  // in real time + streak bonus on a successful day.
+  const taskXp     = dailyTaskXpAwarded(tasks);
+  const penaltyXp  = badHabits.filter((h) => h.is_done).reduce((s, h) => s + h.xp_penalty, 0);
+
   let p = opts.profile;
-  let xpEarnedForLog = 0;
+  let bonus = 0;
 
   if (summary.successful) {
     const streakNext = applyDayComplete(p);
-    const bonus = streakBonusXp(streakNext.day_streak);
+    bonus = streakBonusXp(streakNext.day_streak);
     const xp = applyXpDelta({ total_xp: p.total_xp, level: p.level, deltaXp: bonus });
     p = { ...p, ...streakNext, total_xp: xp.total_xp, current_xp: xp.current_xp, level: xp.level };
-    xpEarnedForLog = bonus;
   } else {
     p = { ...p, ...applyDayMiss(p) };
   }
+
+  const xpEarnedForLog = taskXp + bonus - penaltyXp;
 
   await opts.supabase
     .from('daily_logs')

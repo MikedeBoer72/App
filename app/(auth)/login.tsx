@@ -56,11 +56,22 @@ export default function LoginScreen() {
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
       if (result.type !== 'success') return;
 
-      // Tokens come back in the URL fragment.
-      const fragment = result.url.split('#')[1] ?? '';
-      const params = new URLSearchParams(fragment);
-      const access_token = params.get('access_token');
-      const refresh_token = params.get('refresh_token');
+      // Supabase can use two flows. Newer setups (PKCE) put a ?code=
+      // in the query; the implicit flow puts access_token / refresh_token
+      // in the URL fragment. Handle both so this works regardless of
+      // dashboard configuration.
+      const [base, fragment] = result.url.split('#');
+      const queryString = (base ?? '').split('?')[1] ?? '';
+      const codeParam = new URLSearchParams(queryString).get('code');
+      if (codeParam) {
+        const { error: exErr } = await supabase.auth.exchangeCodeForSession(codeParam);
+        if (exErr) throw exErr;
+        return;
+      }
+
+      const hash = new URLSearchParams(fragment ?? '');
+      const access_token = hash.get('access_token');
+      const refresh_token = hash.get('refresh_token');
       if (!access_token || !refresh_token) {
         throw new Error('Missing tokens in OAuth redirect');
       }

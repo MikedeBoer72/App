@@ -86,7 +86,7 @@ export function getXpProgress(totalXp: number): XpProgress {
 
 /** Tier name for `level` — the highest tier whose minLevel <= level. */
 export function getLevelName(level: number): string {
-  let name = LEVEL_TIERS[0]!.name;
+  let name: string = LEVEL_TIERS[0]!.name;
   for (const tier of LEVEL_TIERS) {
     if (level >= tier.minLevel) name = tier.name;
     else break;
