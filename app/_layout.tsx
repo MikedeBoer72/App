@@ -16,6 +16,11 @@ import { StatusBar } from 'expo-status-bar';
 import type { Session } from '@supabase/supabase-js';
 
 import { DEFAULT_THEME_ID, getTheme } from '@/constants/themes';
+// Side-effect import: defines the daily-reset background task at
+// module load. Keep this above the component so it runs once on
+// every JS boot (including headless background launches).
+import '@/lib/background-tasks';
+import { ensureDailyResetBackgroundFetch } from '@/lib/daily-reset';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -45,6 +50,13 @@ export default function RootLayout() {
     });
     return () => sub.subscription.unsubscribe();
   }, [reset]);
+
+  // Ask iOS to schedule the daily-reset background fetch once. Safe
+  // to call on every launch - it's a no-op when already registered
+  // and silently bails on devices where background-fetch is denied.
+  useEffect(() => {
+    void ensureDailyResetBackgroundFetch();
+  }, []);
 
   // Hydrate the store whenever we have a user id.
   useEffect(() => {
