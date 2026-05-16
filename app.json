@@ -1,19 +1,35 @@
 {
   "expo": {
-    "name": "QuestFit",
-    "slug": "questfit",
+    "name": "MAXING.ai",
+    "slug": "maxing-ai",
+    "scheme": "maxingai",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "backgroundColor": "#0b0b1a",
+      "backgroundColor": "#0A0A0A",
       "resizeMode": "contain"
     },
-    "ios": { "supportsTablet": true },
-    "android": {
-      "adaptiveIcon": { "backgroundColor": "#0b0b1a" }
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.maxing.ai",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "UIBackgroundModes": ["fetch", "processing"]
+      }
     },
-    "web": { "bundler": "metro" }
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "color": "#4A90E2"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

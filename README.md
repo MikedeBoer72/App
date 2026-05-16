@@ -1,53 +1,41 @@
-# QuestFit
+# MAXING.ai
 
-RPG-style fitness tracker built with Expo + React Native. Phase 1 MVP: sleep, nutrition, workouts, hydration, daily quests, streaks, XP/leveling, achievements. Data persists locally via AsyncStorage.
-
-## Run
-
-```bash
-npm install
-npm start          # opens Expo dev tools; scan QR with Expo Go (iOS/Android)
-npm run ios        # iOS simulator (macOS only)
-npm run android    # Android emulator
-npm run web        # browser preview
-```
+iOS habit & task tracker with gamification (XP, levels, streaks, bad habits).
 
 ## Stack
 
-- Expo SDK 51 (React Native 0.74) — iOS, Android, web from one codebase
+- Expo SDK 51 (React Native 0.74), iOS only
+- Expo Router (file-based)
+- Supabase (auth + database)
+- RevenueCat (subscriptions)
+- Zustand (state)
 - TypeScript (strict)
-- `@react-navigation/bottom-tabs` for navigation
-- `@react-native-async-storage/async-storage` for local persistence
-- Zero chart deps — bars are plain `View`s
 
-## XP curve
+## Setup
 
-Total XP needed to reach level `n` is `100 * n * (n+1) / 2` (triangular). So:
+1. `npm install`
+2. Copy `.env.example` to `.env` and fill in Supabase + RevenueCat keys.
+3. Apply the Supabase migration from `supabase/migrations/`.
+4. `npm run ios` (requires macOS + Xcode) or `npm start` then open in Expo Go on iOS.
 
-| Level | Total XP |
-|-------|----------|
-| 1     | 100      |
-| 5     | 1,500    |
-| 10    | 5,500    |
-| 25    | 32,500   |
+## Bundle
 
-Activities award XP via the rules in `src/gamification.ts` (`XP_REWARDS`).
+- Display name: `MAXING.ai`
+- Bundle id: `com.maxing.ai`
+- Scheme: `maxingai`
 
-## Layout
+## Folder structure
 
 ```
-App.tsx                  # tab navigator + providers
-src/
-  theme.ts               # colors, spacing, radii
-  types.ts               # AppState + entry shapes
-  dates.ts               # ISO date helpers
-  gamification.ts        # XP curve, streaks, quests, achievements
-  storage.ts             # AsyncStorage load/save
-  store.tsx              # Context + reducer
-  components/            # Card, Button, XPBar, StatTile, BarChart, ...
-  screens/               # Dashboard, Sleep, Nutrition, Workout, Water, Profile
+app/                  expo-router routes
+  (auth)/login        OAuth (Google + Apple)
+  (tabs)/             dashboard
+  onboarding/         day-start-time picker on first login
+  settings/           all settings sub-screens
+  tasks/              add task / add bad habit
+components/           shared UI
+lib/                  xp, streak, daily-reset, supabase client
+store/                zustand store
+constants/            level + theme definitions
+supabase/migrations/  SQL migrations
 ```
-
-## Not in this phase
-
-Social / clans, wearable integrations, third-party food DB, notifications, mood + measurements, and the rest of the spec. Hooks for adding them: extend `AppState` in `src/types.ts`, add a reducer case in `src/store.tsx`, add a screen + tab in `App.tsx`.
