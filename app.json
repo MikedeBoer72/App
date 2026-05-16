@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "QuestFit",
+    "slug": "questfit",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0b0b1a",
+      "resizeMode": "contain"
+    },
+    "ios": { "supportsTablet": true },
+    "android": {
+      "adaptiveIcon": { "backgroundColor": "#0b0b1a" }
+    },
+    "web": { "bundler": "metro" }
+  }
+}
