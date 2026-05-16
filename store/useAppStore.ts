@@ -18,7 +18,7 @@ import {
   type Theme,
   type ThemeId,
 } from '@/constants/themes';
-import { currentDayFor } from '@/lib/daily-reset';
+import { currentDayFor, runDailyResetIfNeeded } from '@/lib/daily-reset';
 import { applyDayComplete, applyDayMiss } from '@/lib/streak';
 import { supabase } from '@/lib/supabase';
 import type { BadHabit, Profile, Task } from '@/lib/types';
@@ -134,6 +134,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   async loadForUser(userId) {
     try {
+      // Idempotent multi-day catch-up. Non-fatal: if it fails (e.g.
+      // no profile yet because the trigger is still running), we just
+      // load the current state and try again next session.
+      try {
+        await runDailyResetIfNeeded({ supabase, userId });
+      } catch (resetErr) {
+        console.warn('[useAppStore] daily reset failed (non-fatal)', resetErr);
+      }
+
       const { data: profile, error: pErr } = await supabase
         .from('profiles')
         .select('*')

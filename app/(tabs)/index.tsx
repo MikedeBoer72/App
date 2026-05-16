@@ -1,55 +1,333 @@
-// Dashboard stub. Full implementation lands in step 8.
-// Right now it just renders enough state to confirm the auth + store
-// loop works end-to-end and gives us a sign-out button to test it.
+// The dashboard - main screen of the app.
+//
+// Top-to-bottom:
+//   - header row (hamburger -> /settings, app name, streak)
+//   - LevelCircle + current/next XP readout
+//   - Tasks section (+ button -> /tasks/add-tasks) with TaskItem rows
+//   - Bad Habits section (+ button -> /tasks/add-bad-habits)
+//   - footer with today's date + day-start time
+//   - Level-Up celebration modal triggered by store.levelUpEvent
 
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useMemo } from 'react';
+import {
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { supabase } from '@/lib/supabase';
+import { BadHabitItem } from '@/components/BadHabitItem';
+import { LevelCircle } from '@/components/LevelCircle';
+import { StreakDisplay } from '@/components/StreakDisplay';
+import { TaskItem } from '@/components/TaskItem';
+import { getXpProgress } from '@/lib/xp';
+import type { BadHabit, Task } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
 
-export default function DashboardStub() {
+export default function Dashboard() {
+  const router = useRouter();
+
   const profile = useAppStore((s) => s.profile);
+  const tasks = useAppStore((s) => s.tasks);
+  const badHabits = useAppStore((s) => s.badHabits);
   const theme = useAppStore((s) => s.theme);
+  const levelUpEvent = useAppStore((s) => s.levelUpEvent);
+  const clearLevelUpEvent = useAppStore((s) => s.clearLevelUpEvent);
+
+  const completeTask = useAppStore((s) => s.completeTask);
+  const uncompleteTask = useAppStore((s) => s.uncompleteTask);
+  const renameTask = useAppStore((s) => s.renameTask);
+  const deleteTask = useAppStore((s) => s.deleteTask);
+
+  const completeBadHabit = useAppStore((s) => s.completeBadHabit);
+  const uncompleteBadHabit = useAppStore((s) => s.uncompleteBadHabit);
+  const renameBadHabit = useAppStore((s) => s.renameBadHabit);
+  const deleteBadHabit = useAppStore((s) => s.deleteBadHabit);
+
+  const progress = useMemo(
+    () => getXpProgress(profile?.total_xp ?? 0),
+    [profile?.total_xp],
+  );
+
+  if (!profile) {
+    return <View style={[styles.root, { backgroundColor: theme.colors.background }]} />;
+  }
+
+  function onToggleTask(task: Task) {
+    if (task.is_completed) void uncompleteTask(task.id);
+    else void completeTask(task.id);
+  }
+
+  function onOpenTaskMenu(task: Task) {
+    Alert.alert(
+      task.name,
+      undefined,
+      [
+        {
+          text:    task.is_completed ? 'Uncheck' : 'Check',
+          onPress: () => onToggleTask(task),
+        },
+        {
+          text:    'Rename',
+          onPress: () =>
+            Alert.prompt(
+              'Rename task',
+              undefined,
+              (text) => text && void renameTask(task.id, text),
+              'plain-text',
+              task.name,
+            ),
+        },
+        {
+          text:    'Delete',
+          style:   'destructive',
+          onPress: () => void deleteTask(task.id),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+      { cancelable: true },
+    );
+  }
+
+  function onToggleBadHabit(habit: BadHabit) {
+    if (habit.is_done) {
+      void uncompleteBadHabit(habit.id);
+      return;
+    }
+    Alert.alert(
+      'Mark as done?',
+      `This will cost ${habit.xp_penalty} XP and break your streak.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text:    'I did it',
+          style:   'destructive',
+          onPress: () => void completeBadHabit(habit.id),
+        },
+      ],
+    );
+  }
+
+  function onOpenHabitMenu(habit: BadHabit) {
+    Alert.alert(
+      habit.name,
+      undefined,
+      [
+        {
+          text:    habit.is_done ? 'Undo' : 'Mark done',
+          onPress: () => onToggleBadHabit(habit),
+        },
+        {
+          text:    'Rename',
+          onPress: () =>
+            Alert.prompt(
+              'Rename bad habit',
+              undefined,
+              (text) => text && void renameBadHabit(habit.id, text),
+              'plain-text',
+              habit.name,
+            ),
+        },
+        {
+          text:    'Delete',
+          style:   'destructive',
+          onPress: () => void deleteBadHabit(habit.id),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+      { cancelable: true },
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.background }]}>
-      <Text style={[styles.title, { color: theme.colors.primary }]}>MAXING.ai</Text>
-      <View style={styles.card}>
-        <Text style={[styles.label, { color: theme.colors.secondary }]}>Level</Text>
-        <Text style={[styles.value, { color: theme.colors.accent }]}>{profile?.level ?? '-'}</Text>
-      </View>
-      <View style={styles.card}>
-        <Text style={[styles.label, { color: theme.colors.secondary }]}>Total XP</Text>
-        <Text style={[styles.value, { color: theme.colors.primary }]}>{profile?.total_xp ?? 0}</Text>
-      </View>
-      <View style={styles.card}>
-        <Text style={[styles.label, { color: theme.colors.secondary }]}>Day streak</Text>
-        <Text style={[styles.value, { color: theme.colors.primary }]}>{profile?.day_streak ?? 0}</Text>
-      </View>
-      <Text style={[styles.note, { color: theme.colors.muted }]}>
-        Dashboard placeholder - real UI in step 8.
-      </Text>
-      <Pressable
-        onPress={() => supabase.auth.signOut()}
-        style={({ pressed }) => [
-          styles.signOut,
-          { borderColor: theme.colors.muted, opacity: pressed ? 0.6 : 1 },
-        ]}
+      <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/settings')}
+            hitSlop={10}
+            style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.5 : 1 }]}
+          >
+            <Ionicons name="menu" size={26} color={theme.colors.primary} />
+          </Pressable>
+
+          <Text style={[styles.brand, { color: theme.colors.primary }]}>MAXING.ai</Text>
+
+          <StreakDisplay
+            streak={profile.day_streak}
+            secondChanceActive={profile.second_chance_active}
+            color={theme.colors.primary}
+            warnColor={theme.colors.danger}
+          />
+        </View>
+
+        {/* Level circle */}
+        <View style={styles.circleWrap}>
+          <LevelCircle
+            level={progress.level}
+            currentXp={progress.currentXp}
+            xpToNextLevel={progress.xpToNextLevel}
+            levelName={progress.levelName}
+            trackColor={theme.colors.muted}
+            progressColor={theme.colors.accent}
+            textColor={theme.colors.primary}
+            subTextColor={theme.colors.secondary}
+          />
+          <Text style={[styles.xpRead, { color: theme.colors.secondary }]}>
+            {progress.currentXp} / {progress.xpToNextLevel} XP
+          </Text>
+        </View>
+
+        {/* Tasks */}
+        <Section
+          title="Tasks"
+          accent={theme.colors.primary}
+          surface={theme.colors.surface}
+          onAdd={() => router.push('/tasks/add-tasks')}
+          empty={tasks.length === 0 ? 'No tasks today. Tap + to add one.' : undefined}
+          emptyColor={theme.colors.muted}
+        >
+          {tasks.map((t) => (
+            <TaskItem
+              key={t.id}
+              task={t}
+              primaryColor={theme.colors.primary}
+              mutedColor={theme.colors.muted}
+              accentColor={theme.colors.accent}
+              surfaceColor={theme.colors.surface}
+              onToggle={onToggleTask}
+              onOpenMenu={onOpenTaskMenu}
+            />
+          ))}
+        </Section>
+
+        {/* Bad habits */}
+        <Section
+          title="Bad Habits"
+          accent={theme.colors.primary}
+          surface={theme.colors.surface}
+          onAdd={() => router.push('/tasks/add-bad-habits')}
+          empty={badHabits.length === 0 ? 'No bad habits tracked. Tap + to add one.' : undefined}
+          emptyColor={theme.colors.muted}
+        >
+          {badHabits.map((h) => (
+            <BadHabitItem
+              key={h.id}
+              habit={h}
+              primaryColor={theme.colors.primary}
+              mutedColor={theme.colors.muted}
+              dangerColor={theme.colors.danger}
+              surfaceColor={theme.colors.surface}
+              onToggle={onToggleBadHabit}
+              onOpenMenu={onOpenHabitMenu}
+            />
+          ))}
+        </Section>
+
+        {/* Footer */}
+        <Text style={[styles.footer, { color: theme.colors.muted }]}>
+          {formatToday()}  ·  Day starts {formatDayStart(profile.day_start_time)}
+        </Text>
+      </ScrollView>
+
+      {/* Level-up celebration */}
+      <Modal
+        transparent
+        visible={levelUpEvent != null}
+        animationType="fade"
+        onRequestClose={clearLevelUpEvent}
       >
-        <Text style={[styles.signOutText, { color: theme.colors.primary }]}>Sign out</Text>
-      </Pressable>
+        <Pressable style={styles.modalRoot} onPress={clearLevelUpEvent}>
+          <View style={[styles.modalCard, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.modalKicker, { color: theme.colors.accent }]}>LEVEL UP</Text>
+            <Text style={[styles.modalLevel, { color: theme.colors.primary }]}>{levelUpEvent?.to}</Text>
+            <Text style={[styles.modalName, { color: theme.colors.secondary }]}>
+              {levelUpEvent?.levelName}
+            </Text>
+            <Text style={[styles.modalHint, { color: theme.colors.muted }]}>tap to continue</Text>
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
 
+function Section(props: {
+  title:      string;
+  accent:     string;
+  surface:    string;
+  onAdd:      () => void;
+  empty?:     string;
+  emptyColor: string;
+  children:   React.ReactNode;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: props.accent }]}>{props.title}</Text>
+        <Pressable
+          onPress={props.onAdd}
+          hitSlop={10}
+          style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.5 : 1, borderColor: props.accent }]}
+        >
+          <Ionicons name="add" size={18} color={props.accent} />
+        </Pressable>
+      </View>
+      <View style={styles.sectionBody}>
+        {props.empty ? (
+          <Text style={[styles.empty, { color: props.emptyColor }]}>{props.empty}</Text>
+        ) : (
+          props.children
+        )}
+      </View>
+    </View>
+  );
+}
+
+function formatToday(): string {
+  return new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month:   'long',
+    day:     'numeric',
+  });
+}
+
+function formatDayStart(hms: string): string {
+  const [h = '0', m = '0'] = hms.split(':');
+  const hr = Number(h) || 0;
+  const mn = Number(m) || 0;
+  const ampm = hr >= 12 ? 'PM' : 'AM';
+  const hr12 = hr % 12 || 12;
+  return `${hr12}:${String(mn).padStart(2, '0')} ${ampm}`;
+}
+
 const styles = StyleSheet.create({
-  root:        { flex: 1, padding: 24, gap: 16 },
-  title:       { fontSize: 28, fontWeight: '800', marginBottom: 12 },
-  card:        { padding: 16, borderRadius: 12, backgroundColor: '#FFFFFF10' },
-  label:       { fontSize: 13, marginBottom: 4 },
-  value:       { fontSize: 24, fontWeight: '700' },
-  note:        { fontSize: 12, marginTop: 24 },
-  signOut:     { marginTop: 'auto', alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10, borderWidth: 1 },
-  signOutText: { fontSize: 14, fontWeight: '600' },
+  root:           { flex: 1 },
+  scroll:         { paddingHorizontal: 20, paddingBottom: 32, gap: 20 },
+  header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+  iconBtn:        { padding: 4 },
+  brand:          { fontSize: 18, fontWeight: '800', letterSpacing: 0.5 },
+  circleWrap:     { alignItems: 'center', gap: 12, marginVertical: 8 },
+  xpRead:         { fontSize: 13, letterSpacing: 0.5 },
+  section:        { gap: 10 },
+  sectionHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionTitle:   { fontSize: 20, fontWeight: '800', letterSpacing: 0.3 },
+  addBtn:         { width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  sectionBody:    { gap: 8 },
+  empty:          { fontSize: 13, fontStyle: 'italic', paddingVertical: 8 },
+  footer:         { fontSize: 12, textAlign: 'center', marginTop: 8 },
+  modalRoot:      { flex: 1, backgroundColor: '#000000B0', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  modalCard:      { padding: 32, borderRadius: 20, alignItems: 'center', minWidth: 240 },
+  modalKicker:    { fontSize: 12, fontWeight: '800', letterSpacing: 3, marginBottom: 8 },
+  modalLevel:     { fontSize: 72, fontWeight: '900', includeFontPadding: false },
+  modalName:      { fontSize: 16, fontWeight: '700', letterSpacing: 1.5, marginTop: 4 },
+  modalHint:      { fontSize: 11, marginTop: 16 },
 });
