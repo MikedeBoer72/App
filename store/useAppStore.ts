@@ -142,12 +142,31 @@ export const useAppStore = create<AppStore>((set, get) => ({
         console.warn('[useAppStore] daily reset failed (non-fatal)', resetErr);
       }
 
-      const { data: profile, error: pErr } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single<Profile>();
-      if (pErr || !profile) throw pErr ?? new Error('profile not found');
+      // Fetch the profile. If it's missing, create one - covers two
+      // cases:
+      //   - the handle_new_user trigger somehow didn't fire
+      //   - the user previously hit "Delete Account" then signed back in
+      //     with the same provider (no auth.users INSERT, so the trigger
+      //     wouldn't refire)
+      let profile: Profile | null = null;
+      {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle<Profile>();
+        if (error && error.code !== 'PGRST116') throw error;
+        profile = data;
+      }
+      if (!profile) {
+        const { data: created, error: cErr } = await supabase
+          .from('profiles')
+          .insert({ id: userId })
+          .select('*')
+          .single<Profile>();
+        if (cErr || !created) throw cErr ?? new Error('Failed to create profile');
+        profile = created;
+      }
 
       const today = currentDayFor(new Date(), profile.day_start_time);
 
