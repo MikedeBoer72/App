@@ -263,20 +263,29 @@ export function defineDailyResetBackgroundTask(handler: () => Promise<void>): vo
  * Asks iOS to schedule the task. iOS may still ignore the request or
  * fire it whenever it pleases — treat success as best-effort and
  * always run the foreground reset on app open.
+ *
+ * Wrapped in try/catch because Expo Go on iOS ships without the
+ * `fetch` UIBackgroundMode entitlement and registerTaskAsync throws.
+ * Once you build a real dev client / production build via EAS with
+ * app.json's UIBackgroundModes intact, this will actually register.
  */
 export async function ensureDailyResetBackgroundFetch(): Promise<void> {
-  const status = await BackgroundFetch.getStatusAsync();
-  if (
-    status === BackgroundFetch.BackgroundFetchStatus.Restricted ||
-    status === BackgroundFetch.BackgroundFetchStatus.Denied
-  ) {
-    return;
+  try {
+    const status = await BackgroundFetch.getStatusAsync();
+    if (
+      status === BackgroundFetch.BackgroundFetchStatus.Restricted ||
+      status === BackgroundFetch.BackgroundFetchStatus.Denied
+    ) {
+      return;
+    }
+    const registered = await TaskManager.isTaskRegisteredAsync(DAILY_RESET_TASK_NAME);
+    if (registered) return;
+    await BackgroundFetch.registerTaskAsync(DAILY_RESET_TASK_NAME, {
+      minimumInterval: 15 * 60,   // iOS treats this as a hint
+      stopOnTerminate: false,
+      startOnBoot:     true,
+    });
+  } catch (err) {
+    console.warn('[daily-reset] background fetch not available (expected in Expo Go):', err);
   }
-  const registered = await TaskManager.isTaskRegisteredAsync(DAILY_RESET_TASK_NAME);
-  if (registered) return;
-  await BackgroundFetch.registerTaskAsync(DAILY_RESET_TASK_NAME, {
-    minimumInterval: 15 * 60,   // iOS treats this as a hint
-    stopOnTerminate: false,
-    startOnBoot:     true,
-  });
 }
