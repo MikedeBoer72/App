@@ -21,6 +21,12 @@ import { DEFAULT_THEME_ID, getTheme } from '@/constants/themes';
 // every JS boot (including headless background launches).
 import '@/lib/background-tasks';
 import { ensureDailyResetBackgroundFetch } from '@/lib/daily-reset';
+import {
+  identifyRevenueCatUser,
+  initRevenueCat,
+  listenForEntitlementChanges,
+  logOutRevenueCat,
+} from '@/lib/revenuecat';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -46,10 +52,19 @@ export default function RootLayout() {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
-      if (!sess) reset();
+      if (!sess) {
+        reset();
+        void logOutRevenueCat();
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, [reset]);
+
+  // Configure RevenueCat once. No-op if the API key is missing /
+  // placeholder; falls through silently in Expo Go.
+  useEffect(() => {
+    initRevenueCat();
+  }, []);
 
   // Ask iOS to schedule the daily-reset background fetch once. Safe
   // to call on every launch - it's a no-op when already registered
@@ -57,6 +72,16 @@ export default function RootLayout() {
   useEffect(() => {
     void ensureDailyResetBackgroundFetch();
   }, []);
+
+  // Identify the user with RevenueCat as soon as we have a session,
+  // and listen for entitlement changes so a renewal / refund on
+  // another device updates Supabase here too.
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid) return;
+    void identifyRevenueCatUser(uid);
+    return listenForEntitlementChanges(uid);
+  }, [session?.user?.id]);
 
   // Hydrate the store whenever we have a user id.
   useEffect(() => {
