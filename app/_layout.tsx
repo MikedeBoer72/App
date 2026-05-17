@@ -81,7 +81,7 @@ export default function RootLayout() {
       return;
     }
 
-    const inSubscription = top === 'settings' && segments[1] === 'subscription';
+    const inSubscription = top === 'settings' && (segments as string[])[1] === 'subscription';
     if (profile.level >= 5 && !profile.is_subscribed) {
       if (!inSubscription) router.replace('/settings/subscription');
       return;
