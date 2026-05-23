@@ -1,7 +1,13 @@
 // One row in the Bad Habits list. Same shape as TaskItem but rendered
 // in the danger color and showing a negative XP value.
+//
+// Polish (step 16):
+//   - Checkbox does a quick spring bounce on tap.
+//   - Row briefly flashes the danger color when transitioning to "done"
+//     - the "ow" moment - then settles back.
 
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { BadHabit } from '@/lib/types';
 
@@ -26,23 +32,52 @@ export function BadHabitItem({
 }: BadHabitItemProps) {
   const done = habit.is_done;
 
+  const checkScale = useRef(new Animated.Value(1)).current;
+  const flash = useRef(new Animated.Value(0)).current;
+  const prevDone = useRef(done);
+
+  useEffect(() => {
+    if (done !== prevDone.current) {
+      Animated.sequence([
+        Animated.spring(checkScale, { toValue: 1.35, friction: 4, useNativeDriver: true }),
+        Animated.spring(checkScale, { toValue: 1, friction: 5, useNativeDriver: true }),
+      ]).start();
+
+      if (done && !prevDone.current) {
+        Animated.sequence([
+          Animated.timing(flash, { toValue: 1, duration: 180, useNativeDriver: false }),
+          Animated.timing(flash, { toValue: 0, duration: 600, useNativeDriver: false }),
+        ]).start();
+      }
+    }
+    prevDone.current = done;
+  }, [done, checkScale, flash]);
+
+  const animatedBg = flash.interpolate({
+    inputRange:  [0, 1],
+    outputRange: [surfaceColor, dangerColor + '33'],
+  });
+
   return (
-    <View style={[styles.row, { backgroundColor: surfaceColor }]}>
+    <Animated.View style={[styles.row, { backgroundColor: animatedBg }]}>
       <Pressable
         accessibilityRole="checkbox"
         accessibilityState={{ checked: done }}
         onPress={() => onToggle(habit)}
         hitSlop={8}
-        style={({ pressed }) => [
-          styles.checkbox,
-          {
-            borderColor:     done ? dangerColor : mutedColor,
-            backgroundColor: done ? dangerColor : 'transparent',
-            opacity:         pressed ? 0.6 : 1,
-          },
-        ]}
       >
-        {done ? <Text style={styles.cross}>{'✗'}</Text> : null}
+        <Animated.View
+          style={[
+            styles.checkbox,
+            {
+              borderColor:     done ? dangerColor : mutedColor,
+              backgroundColor: done ? dangerColor : 'transparent',
+              transform:       [{ scale: checkScale }],
+            },
+          ]}
+        >
+          {done ? <Text style={styles.cross}>{'✗'}</Text> : null}
+        </Animated.View>
       </Pressable>
 
       <Pressable
@@ -67,7 +102,7 @@ export function BadHabitItem({
       <Text style={[styles.xp, { color: dangerColor }]}>
         -{habit.xp_penalty} XP
       </Text>
-    </View>
+    </Animated.View>
   );
 }
 

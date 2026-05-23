@@ -9,10 +9,12 @@
 //   - Level-Up celebration modal triggered by store.levelUpEvent
 
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
   Modal,
   Pressable,
   ScrollView,
@@ -55,13 +57,29 @@ export default function Dashboard() {
     [profile?.total_xp],
   );
 
+  // Floating "+XP" toasts. Pushed by onToggleTask; each renders
+  // absolutely over the level circle and removes itself after 1.6s.
+  const [xpToasts, setXpToasts] = useState<Array<{ id: number; amount: number }>>([]);
+
   if (!profile) {
     return <View style={[styles.root, { backgroundColor: theme.colors.background }]} />;
   }
 
-  function onToggleTask(task: Task) {
-    if (task.is_completed) void uncompleteTask(task.id);
-    else void completeTask(task.id);
+  async function onToggleTask(task: Task) {
+    if (task.is_completed) {
+      void Haptics.selectionAsync();
+      void uncompleteTask(task.id);
+      return;
+    }
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const { awarded } = await completeTask(task.id);
+    if (awarded > 0) {
+      const id = Date.now() + Math.random();
+      setXpToasts((prev) => [...prev, { id, amount: awarded }]);
+      setTimeout(() => {
+        setXpToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 1600);
+    }
   }
 
   function onOpenTaskMenu(task: Task) {
@@ -97,9 +115,11 @@ export default function Dashboard() {
 
   function onToggleBadHabit(habit: BadHabit) {
     if (habit.is_done) {
+      void Haptics.selectionAsync();
       void uncompleteBadHabit(habit.id);
       return;
     }
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     Alert.alert(
       'Mark as done?',
       `This will cost ${habit.xp_penalty} XP and break your streak.`,
@@ -108,7 +128,10 @@ export default function Dashboard() {
         {
           text:    'I did it',
           style:   'destructive',
-          onPress: () => void completeBadHabit(habit.id),
+          onPress: () => {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            void completeBadHabit(habit.id);
+          },
         },
       ],
     );
@@ -193,6 +216,12 @@ export default function Dashboard() {
           <Text style={[styles.xpRead, { color: theme.colors.secondary }]}>
             {progress.currentXp} / {progress.xpToNextLevel} XP
           </Text>
+          {/* Floating XP toasts, stacked. */}
+          <View pointerEvents="none" style={styles.xpToastLayer}>
+            {xpToasts.map((t) => (
+              <XpToast key={t.id} amount={t.amount} color={theme.colors.accent} />
+            ))}
+          </View>
         </View>
 
         {/* Tasks */}
@@ -255,14 +284,11 @@ export default function Dashboard() {
         onRequestClose={clearLevelUpEvent}
       >
         <Pressable style={styles.modalRoot} onPress={clearLevelUpEvent}>
-          <View style={[styles.modalCard, { backgroundColor: theme.colors.surface }]}>
-            <Text style={[styles.modalKicker, { color: theme.colors.accent }]}>LEVEL UP</Text>
-            <Text style={[styles.modalLevel, { color: theme.colors.primary }]}>{levelUpEvent?.to}</Text>
-            <Text style={[styles.modalName, { color: theme.colors.secondary }]}>
-              {levelUpEvent?.levelName}
-            </Text>
-            <Text style={[styles.modalHint, { color: theme.colors.muted }]}>tap to continue</Text>
-          </View>
+          <LevelUpCard
+            level={levelUpEvent?.to ?? 0}
+            name={levelUpEvent?.levelName ?? ''}
+            colors={theme.colors}
+          />
         </Pressable>
       </Modal>
     </SafeAreaView>
@@ -301,6 +327,92 @@ function Section(props: {
   );
 }
 
+/** Floating "+N XP" indicator. Mounts -> animates up + fades out. */
+function XpToast({ amount, color }: { amount: number; color: string }) {
+  const t = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(t, {
+      toValue:         1,
+      duration:        1500,
+      useNativeDriver: true,
+    }).start();
+  }, [t]);
+
+  const translateY = t.interpolate({ inputRange: [0, 1], outputRange: [0, -80] });
+  const opacity    = t.interpolate({ inputRange: [0, 0.2, 0.8, 1], outputRange: [0, 1, 1, 0] });
+  const scale      = t.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.6, 1.1, 1] });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[styles.xpToast, { transform: [{ translateY }, { scale }], opacity }]}
+    >
+      <Text style={[styles.xpToastText, { color }]}>+{amount} XP</Text>
+    </Animated.View>
+  );
+}
+
+/** Level-up celebration: spring-in scale + glow pulse + success haptic. */
+function LevelUpCard({
+  level,
+  name,
+  colors,
+}: {
+  level:  number;
+  name:   string;
+  colors: { surface: string; primary: string; secondary: string; accent: string; muted: string };
+}) {
+  const pop = useRef(new Animated.Value(0)).current;
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Animated.spring(pop, { toValue: 1, friction: 5, tension: 60, useNativeDriver: true }).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ]),
+    ).start();
+  }, [pop, pulse]);
+
+  const cardScale = pop.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
+  const cardOpacity = pop;
+  const glowScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.15] });
+  const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.05] });
+
+  return (
+    <View style={styles.levelUpWrap} pointerEvents="box-none">
+      {/* Pulsing accent glow behind the card. */}
+      <Animated.View
+        style={[
+          styles.levelUpGlow,
+          {
+            backgroundColor: colors.accent,
+            transform:       [{ scale: glowScale }],
+            opacity:         glowOpacity,
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.modalCard,
+          {
+            backgroundColor: colors.surface,
+            opacity:         cardOpacity,
+            transform:       [{ scale: cardScale }],
+          },
+        ]}
+      >
+        <Text style={[styles.modalKicker, { color: colors.accent }]}>LEVEL UP</Text>
+        <Text style={[styles.modalLevel, { color: colors.primary }]}>{level}</Text>
+        <Text style={[styles.modalName, { color: colors.secondary }]}>{name}</Text>
+        <Text style={[styles.modalHint, { color: colors.muted }]}>tap to continue</Text>
+      </Animated.View>
+    </View>
+  );
+}
+
 function formatToday(): string {
   return new Date().toLocaleDateString(undefined, {
     weekday: 'long',
@@ -334,6 +446,11 @@ const styles = StyleSheet.create({
   sectionBody:    { gap: 8 },
   empty:          { fontSize: 13, fontStyle: 'italic', paddingVertical: 8 },
   footer:         { fontSize: 12, textAlign: 'center', marginTop: 8 },
+  xpToastLayer:   { position: 'absolute', left: 0, right: 0, top: '40%', alignItems: 'center', pointerEvents: 'none' },
+  xpToast:        { position: 'absolute' },
+  xpToastText:    { fontSize: 28, fontWeight: '900', letterSpacing: 0.5, textShadowColor: '#0008', textShadowRadius: 6 },
+  levelUpWrap:    { alignItems: 'center', justifyContent: 'center' },
+  levelUpGlow:    { position: 'absolute', width: 320, height: 320, borderRadius: 160 },
   modalRoot:      { flex: 1, backgroundColor: '#000000B0', alignItems: 'center', justifyContent: 'center', padding: 24 },
   modalCard:      { padding: 32, borderRadius: 20, alignItems: 'center', minWidth: 240 },
   modalKicker:    { fontSize: 12, fontWeight: '800', letterSpacing: 3, marginBottom: 8 },

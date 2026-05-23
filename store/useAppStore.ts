@@ -72,7 +72,7 @@ interface AppStore {
 
   // ---- task actions ----
   addTask:         (name: string) => Promise<Task | null>;
-  completeTask:    (taskId: string) => Promise<void>;
+  completeTask:    (taskId: string) => Promise<{ awarded: number; leveledUp: boolean }>;
   uncompleteTask:  (taskId: string) => Promise<void>;
   renameTask:      (taskId: string, name: string) => Promise<void>;
   deleteTask:      (taskId: string) => Promise<void>;
@@ -244,9 +244,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   async completeTask(taskId) {
     const { profile, tasks } = get();
-    if (!profile) return;
+    if (!profile) return { awarded: 0, leveledUp: false };
     const task = tasks.find((t) => t.id === taskId);
-    if (!task || task.is_completed) return;
+    if (!task || task.is_completed) return { awarded: 0, leveledUp: false };
 
     const award = clampDailyTaskXp(task.xp_value, dailyTaskXpAwarded(tasks));
     const completed: Task = {
@@ -281,6 +281,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
       console.warn('[useAppStore] completeTask persist failed', err);
       await get().loadForUser(profile.id);
     }
+
+    return { awarded: award, leveledUp: levelUpEvent != null };
   },
 
   async uncompleteTask(taskId) {
