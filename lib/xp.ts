@@ -1,4 +1,4 @@
-// XP + level math for MAXING.ai.
+// XP + level math for YourLevel.
 //
 // Everything here is a pure function so the rules are unit-testable
 // without touching Supabase or the store.

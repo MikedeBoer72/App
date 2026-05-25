@@ -239,7 +239,7 @@ async function closeOutDay(opts: {
 // Background-fetch wiring (iOS best-effort)
 // ---------------------------------------------------------------------------
 
-export const DAILY_RESET_TASK_NAME = 'maxing-ai-daily-reset';
+export const DAILY_RESET_TASK_NAME = 'yourlevel-daily-reset';
 
 /**
  * Defines the background task. Must be called at module scope (i.e.

@@ -1,10 +1,10 @@
-# MAXING.ai
+# YourLevel
 
 iOS habit & task tracker with gamification (XP, levels, streaks, bad habits).
 
 ## Stack
 
-- Expo SDK 51 (React Native 0.74), iOS only
+- Expo SDK 54 (React Native 0.81), iOS only
 - Expo Router (file-based)
 - Supabase (auth + database)
 - RevenueCat (subscriptions)
@@ -20,9 +20,9 @@ iOS habit & task tracker with gamification (XP, levels, streaks, bad habits).
 
 ## Bundle
 
-- Display name: `MAXING.ai`
-- Bundle id: `com.maxing.ai`
-- Scheme: `maxingai`
+- Display name: `YourLevel`
+- Bundle id: `com.yourlevel.app`
+- Scheme: `yourlevel`
 
 ## Folder structure
 

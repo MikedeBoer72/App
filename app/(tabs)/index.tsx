@@ -182,7 +182,7 @@ export default function Dashboard() {
             <Ionicons name="menu" size={26} color={theme.colors.primary} />
           </Pressable>
 
-          <Text style={[styles.brand, { color: theme.colors.primary }]}>MAXING.ai</Text>
+          <Text style={[styles.brand, { color: theme.colors.primary }]}>YourLevel</Text>
 
           <StreakDisplay
             streak={profile.day_streak}

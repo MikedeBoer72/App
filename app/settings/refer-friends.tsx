@@ -2,7 +2,7 @@
 //
 // On mount we look for the user's referral row; if none exists we
 // generate a short code and insert one. The code is what gets shared
-// (https://maxing.ai/r/<code>). Conversion + free month accounting
+// (https://yourlevel.app/r/<code>). Conversion + free month accounting
 // is done server-side in step 15 when the subscription webhook fires.
 
 import { Ionicons } from '@expo/vector-icons';
@@ -25,7 +25,7 @@ import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 
 // TODO: replace with your real share domain before submission.
-const SHARE_BASE = 'https://maxing.ai/r/';
+const SHARE_BASE = 'https://yourlevel.app/r/';
 
 interface Stats {
   total:      number;
@@ -112,7 +112,7 @@ export default function ReferFriendsScreen() {
     if (!link) return;
     try {
       await Share.share({
-        message: `Join me on MAXING.ai - level up your habits. ${link}`,
+        message: `Join me on YourLevel - level up your habits. ${link}`,
         url:     link,
       });
     } catch (err) {
@@ -140,7 +140,7 @@ export default function ReferFriendsScreen() {
           Refer Friends, Get 1 Free Month
         </Text>
         <Text style={[styles.copy, { color: theme.colors.secondary }]}>
-          Share your link. When a friend downloads MAXING.ai and subscribes, your next month is on
+          Share your link. When a friend downloads YourLevel and subscribes, your next month is on
           us.
         </Text>
 
@@ -215,7 +215,7 @@ export default function ReferFriendsScreen() {
         {/* How it works */}
         <Text style={[styles.howTitle, { color: theme.colors.primary }]}>How it works</Text>
         <Step n={1} text='Tap "Share" and send your link to a friend.'           theme={theme} />
-        <Step n={2} text="Your friend downloads MAXING.ai using your link."      theme={theme} />
+        <Step n={2} text="Your friend downloads YourLevel using your link."      theme={theme} />
         <Step n={3} text="When they subscribe, your next month is free."         theme={theme} />
       </ScrollView>
     </SafeAreaView>

@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "MAXING.ai",
-    "slug": "maxing-ai",
-    "scheme": "maxingai",
+    "name": "YourLevel",
+    "slug": "yourlevel",
+    "scheme": "yourlevel",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -13,7 +13,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.maxing.ai",
+      "bundleIdentifier": "com.yourlevel.app",
       "usesAppleSignIn": true,
       "infoPlist": {
         "UIBackgroundModes": ["fetch", "processing"]

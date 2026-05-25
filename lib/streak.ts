@@ -1,4 +1,4 @@
-// Streak rules for MAXING.ai. Pure functions returning a new
+// Streak rules for YourLevel. Pure functions returning a new
 // StreakState — they never mutate their input, never touch Supabase.
 //
 // Second Chance rule (from spec):

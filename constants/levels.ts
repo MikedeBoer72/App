@@ -1,4 +1,4 @@
-// Level + XP constants for MAXING.ai.
+// Level + XP constants for YourLevel.
 //
 // XP cost to advance one level depends on the band the current level is in:
 //   levels  1..4  -> 500   xp each (gets you to 2, 3, 4, 5)

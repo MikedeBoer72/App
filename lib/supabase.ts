@@ -1,4 +1,4 @@
-// Supabase client for MAXING.ai.
+// Supabase client for YourLevel.
 //
 // - URL polyfill is required for React Native's stripped-down URL impl.
 // - AsyncStorage backs the auth session (survives app restarts).

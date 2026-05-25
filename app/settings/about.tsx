@@ -27,13 +27,13 @@ export default function AboutScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={[styles.brand, { color: theme.colors.primary }]}>MAXING.ai</Text>
+        <Text style={[styles.brand, { color: theme.colors.primary }]}>YourLevel</Text>
         <Text style={[styles.tagline, { color: theme.colors.secondary }]}>
           Self-improvement, gamified.
         </Text>
 
         <Paragraph theme={theme}>
-          MAXING.ai turns daily self-improvement into a game. Pick the habits that matter to you,
+          YourLevel turns daily self-improvement into a game. Pick the habits that matter to you,
           track the bad habits you want to drop, and earn XP for every win.
         </Paragraph>
 

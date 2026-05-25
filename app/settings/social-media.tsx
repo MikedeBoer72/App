@@ -13,14 +13,14 @@ import { useAppStore } from '@/store/useAppStore';
 
 // TODO: replace placeholders before App Store submission.
 const LINKS: ReadonlyArray<{ icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap; label: string; url: string }> = [
-  { icon: 'logo-instagram', label: 'Instagram', url: 'https://instagram.com/maxing.ai' },
-  { icon: 'logo-twitter',   label: 'X',         url: 'https://x.com/maxingai' },
-  { icon: 'logo-tiktok',    label: 'TikTok',    url: 'https://tiktok.com/@maxing.ai' },
-  { icon: 'logo-youtube',   label: 'YouTube',   url: 'https://youtube.com/@maxingai' },
+  { icon: 'logo-instagram', label: 'Instagram', url: 'https://instagram.com/yourlevel.app' },
+  { icon: 'logo-twitter',   label: 'X',         url: 'https://x.com/yourlevelapp' },
+  { icon: 'logo-tiktok',    label: 'TikTok',    url: 'https://tiktok.com/@yourlevel.app' },
+  { icon: 'logo-youtube',   label: 'YouTube',   url: 'https://youtube.com/@yourlevelapp' },
 ];
 
 const VIDEOS: ReadonlyArray<{ id: string; title: string }> = [
-  { id: 'dQw4w9WgXcQ', title: 'Why MAXING.ai exists' },
+  { id: 'dQw4w9WgXcQ', title: 'Why YourLevel exists' },
   { id: 'dQw4w9WgXcQ', title: 'Build a streak in 7 days' },
   { id: 'dQw4w9WgXcQ', title: 'Beating bad habits' },
 ];

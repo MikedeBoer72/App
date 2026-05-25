@@ -70,7 +70,7 @@ export default function SubscriptionScreen() {
     if (result.success) {
       // Reload profile so the dashboard / guard see the new is_subscribed.
       await useAppStore.getState().loadForUser(profile.id);
-      Alert.alert('Welcome to Pro', 'Thanks for supporting MAXING.ai.');
+      Alert.alert('Welcome to Pro', 'Thanks for supporting YourLevel.');
     } else if (!result.cancelled && result.error) {
       Alert.alert('Purchase failed', result.error);
     }
