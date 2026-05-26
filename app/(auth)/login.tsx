@@ -43,6 +43,21 @@ export default function LoginScreen() {
     }
   }, []);
 
+  // Dev helper: print the exact OAuth redirect URI so it can be
+  // copy-pasted into Supabase's allowed Redirect URLs. Remove with
+  // the guest button before release. Look for this line in the
+  // Expo / Metro terminal.
+  useEffect(() => {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log(
+        '\n=== Supabase Redirect URL to allowlist ===\n' +
+          Linking.createURL('auth-callback') +
+          '\n==========================================\n',
+      );
+    }
+  }, []);
+
   async function handleGoogle() {
     setPending('google');
     try {
