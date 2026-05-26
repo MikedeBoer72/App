@@ -71,27 +71,38 @@ export default function LoginScreen() {
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
       if (result.type !== 'success') return;
 
-      // Supabase can use two flows. Newer setups (PKCE) put a ?code=
-      // in the query; the implicit flow puts access_token / refresh_token
-      // in the URL fragment. Handle both so this works regardless of
-      // dashboard configuration.
-      const [base, fragment] = result.url.split('#');
-      const queryString = (base ?? '').split('?')[1] ?? '';
-      const codeParam = new URLSearchParams(queryString).get('code');
-      if (codeParam) {
-        const { error: exErr } = await supabase.auth.exchangeCodeForSession(codeParam);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('OAuth redirect result url:', result.url);
+      }
+
+      // Params can live in the query (?code=... for PKCE) or the
+      // fragment (#access_token=... for implicit). Expo Go also wraps
+      // the deep link as exp://host/--/path?...; Linking.parse handles
+      // the query side of that, and we hand-parse the fragment.
+      const parsed = Linking.parse(result.url);
+      const q = parsed.queryParams ?? {};
+      const fragment = result.url.includes('#') ? result.url.split('#')[1]! : '';
+      const hash = new URLSearchParams(fragment);
+
+      const code =
+        (typeof q.code === 'string' ? q.code : null) ?? hash.get('code');
+      const access_token =
+        (typeof q.access_token === 'string' ? q.access_token : null) ?? hash.get('access_token');
+      const refresh_token =
+        (typeof q.refresh_token === 'string' ? q.refresh_token : null) ?? hash.get('refresh_token');
+
+      if (code) {
+        const { error: exErr } = await supabase.auth.exchangeCodeForSession(code);
         if (exErr) throw exErr;
         return;
       }
-
-      const hash = new URLSearchParams(fragment ?? '');
-      const access_token = hash.get('access_token');
-      const refresh_token = hash.get('refresh_token');
-      if (!access_token || !refresh_token) {
-        throw new Error('Missing tokens in OAuth redirect');
+      if (access_token && refresh_token) {
+        const { error: setErr } = await supabase.auth.setSession({ access_token, refresh_token });
+        if (setErr) throw setErr;
+        return;
       }
-      const { error: setErr } = await supabase.auth.setSession({ access_token, refresh_token });
-      if (setErr) throw setErr;
+      throw new Error('Missing tokens in OAuth redirect');
     } catch (err: unknown) {
       Alert.alert('Sign-in failed', describe(err));
     } finally {
