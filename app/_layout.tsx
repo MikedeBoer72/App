@@ -21,6 +21,7 @@ import { DEFAULT_THEME_ID, getTheme } from '@/constants/themes';
 // every JS boot (including headless background launches).
 import '@/lib/background-tasks';
 import { ensureDailyResetBackgroundFetch } from '@/lib/daily-reset';
+import { disableDailyReminders } from '@/lib/notifications';
 import {
   identifyRevenueCatUser,
   initRevenueCat,
@@ -55,6 +56,7 @@ export default function RootLayout() {
       if (!sess) {
         reset();
         void logOutRevenueCat();
+        void disableDailyReminders();
       }
     });
     return () => sub.subscription.unsubscribe();

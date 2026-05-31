@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { syncRemindersToDayStart } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
@@ -79,6 +80,9 @@ export default function DayStartTimeScreen() {
         .single<Profile>();
       if (error || !data) throw error ?? new Error('Save failed');
       setProfile(data);
+      // Keep reminder times aligned with the new day-start. No-op if
+      // the user hasn't enabled notifications.
+      void syncRemindersToDayStart(day_start_time);
       router.back();
     } catch (err) {
       Alert.alert('Could not save', err instanceof Error ? err.message : String(err));

@@ -19,6 +19,7 @@ const ROWS: readonly Row[] = [
   { icon: 'information-circle-outline', label: 'About',                   href: '/settings/about' },
   { icon: 'color-palette-outline', label: 'Fonts',                        href: '/settings/fonts' },
   { icon: 'time-outline',       label: 'Day Starting Time',               href: '/settings/day-start-time' },
+  { icon: 'notifications-outline', label: 'Notifications',                href: '/settings/notifications' },
   { icon: 'person-outline',     label: 'Account',                         href: '/settings/account' },
   { icon: 'share-social-outline', label: 'Social Media',                  href: '/settings/social-media' },
   { icon: 'gift-outline',       label: 'Refer Friends for 1 Free Month',  href: '/settings/refer-friends' },
