@@ -146,10 +146,16 @@ export async function runDailyResetIfNeeded(opts: {
     cursor = nextYmd(cursor);
   }
 
-  // Uncheck everything for the new day and stamp date=today.
+  // Wipe the prior day's tasks so the user starts each new day with
+  // an empty list and re-picks what matters. Bad habits stay - they
+  // represent persistent "things I'm trying not to do" and would be
+  // annoying to re-add every morning. They get rolled forward
+  // (unchecked + date=today) instead. task_history is untouched so
+  // the suggestion chips still surface yesterday's tasks for one-tap
+  // re-add.
   await opts.supabase
     .from('tasks')
-    .update({ is_completed: false, completed_at: null, date: today })
+    .delete()
     .eq('user_id', opts.userId);
   await opts.supabase
     .from('bad_habits')
