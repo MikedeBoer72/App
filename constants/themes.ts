@@ -147,18 +147,18 @@ export const THEMES: readonly Theme[] = [
     name:        'Green Vibes',
     unlockLevel: 50,
     isPaid:      true,
-    description: 'Fresh garden — bright greens on a sunlit canvas.',
+    description: 'Kiwi cream and grass green.',
     fontLabel:   'Outfit',
     fonts:       OUTFIT,
     colors: {
-      background: '#F1F8E9',  // pale mint white
-      surface:    '#FFFFFF',  // crisp card
-      primary:    '#14532D',  // deep forest text
-      secondary:  '#2D6A4F',  // mid forest
-      accent:     '#16A34A',  // vivid grass green
-      danger:     '#DC2626',  // alarm red
-      success:    '#16A34A',
-      muted:      '#BBF7D0',  // pale mint for dividers
+      background: '#F7FEE7',  // kiwi-milkshake cream (lime-tinted off-white)
+      surface:    '#FFFFFF',  // clean white card pops against the cream
+      primary:    '#1A2E05',  // deep olive-black for max readability
+      secondary:  '#4D7C0F',  // mid kiwi for secondary text
+      accent:     '#65A30D',  // vivid kiwi-grass green
+      danger:     '#DC2626',  // proper red for bad-habit penalties
+      success:    '#16A34A',  // saturated grass green for "win" moments
+      muted:      '#BEF264',  // lime-leaf, for dividers / disabled
     },
   },
 ] as const;
