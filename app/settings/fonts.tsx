@@ -33,10 +33,13 @@ export default function FontsScreen() {
   const rows = useMemo(() => {
     return THEMES.map((t) => {
       let status: Status;
-      if (t.id === theme.id)                  status = 'active';
-      else if (level < t.unlockLevel)         status = 'locked';
-      else if (t.isPaid && !subscribed)       status = 'needs-pro';
-      else                                    status = 'available';
+      if (t.id === theme.id)                            status = 'active';
+      // In development the gates are turned off so you can preview
+      // every theme/font without grinding levels or subscribing.
+      // EAS / production builds keep the gating intact.
+      else if (!__DEV__ && level < t.unlockLevel)       status = 'locked';
+      else if (!__DEV__ && t.isPaid && !subscribed)     status = 'needs-pro';
+      else                                              status = 'available';
       return { theme: t, status };
     });
   }, [theme.id, level, subscribed]);
