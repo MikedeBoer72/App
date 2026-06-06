@@ -182,7 +182,7 @@ export default function Dashboard() {
             <Ionicons name="menu" size={26} color={theme.colors.primary} />
           </Pressable>
 
-          <Text style={[styles.brand, { color: theme.colors.primary }]}>YourLevel</Text>
+          <Text style={[styles.brand, { color: theme.colors.primary, fontFamily: theme.fonts.bold }]}>YourLevel</Text>
 
           <StreakDisplay
             streak={profile.day_streak}
@@ -212,6 +212,7 @@ export default function Dashboard() {
             progressColor={theme.colors.accent}
             textColor={theme.colors.primary}
             subTextColor={theme.colors.secondary}
+            fontFamily={theme.fonts.bold}
           />
           <Text style={[styles.xpRead, { color: theme.colors.secondary }]}>
             {progress.currentXp} / {progress.xpToNextLevel} XP
@@ -232,6 +233,7 @@ export default function Dashboard() {
           onAdd={() => router.push('/tasks/add-tasks')}
           empty={tasks.length === 0 ? 'No tasks today. Tap + to add one.' : undefined}
           emptyColor={theme.colors.muted}
+          fontFamily={theme.fonts.bold}
         >
           {tasks.map((t) => (
             <TaskItem
@@ -255,6 +257,7 @@ export default function Dashboard() {
           onAdd={() => router.push('/tasks/add-bad-habits')}
           empty={badHabits.length === 0 ? 'No bad habits tracked. Tap + to add one.' : undefined}
           emptyColor={theme.colors.muted}
+          fontFamily={theme.fonts.bold}
         >
           {badHabits.map((h) => (
             <BadHabitItem
@@ -288,6 +291,7 @@ export default function Dashboard() {
             level={levelUpEvent?.to ?? 0}
             name={levelUpEvent?.levelName ?? ''}
             colors={theme.colors}
+            fontFamily={theme.fonts.bold}
           />
         </Pressable>
       </Modal>
@@ -302,12 +306,15 @@ function Section(props: {
   onAdd:      () => void;
   empty?:     string;
   emptyColor: string;
+  fontFamily?: string;
   children:   React.ReactNode;
 }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: props.accent }]}>{props.title}</Text>
+        <Text style={[styles.sectionTitle, { color: props.accent, fontFamily: props.fontFamily }]}>
+          {props.title}
+        </Text>
         <Pressable
           onPress={props.onAdd}
           hitSlop={10}
@@ -357,10 +364,12 @@ function LevelUpCard({
   level,
   name,
   colors,
+  fontFamily,
 }: {
-  level:  number;
-  name:   string;
-  colors: { surface: string; primary: string; secondary: string; accent: string; muted: string };
+  level:       number;
+  name:        string;
+  colors:      { surface: string; primary: string; secondary: string; accent: string; muted: string };
+  fontFamily?: string;
 }) {
   const pop = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
@@ -404,9 +413,9 @@ function LevelUpCard({
           },
         ]}
       >
-        <Text style={[styles.modalKicker, { color: colors.accent }]}>LEVEL UP</Text>
-        <Text style={[styles.modalLevel, { color: colors.primary }]}>{level}</Text>
-        <Text style={[styles.modalName, { color: colors.secondary }]}>{name}</Text>
+        <Text style={[styles.modalKicker, { color: colors.accent, fontFamily }]}>LEVEL UP</Text>
+        <Text style={[styles.modalLevel, { color: colors.primary, fontFamily }]}>{level}</Text>
+        <Text style={[styles.modalName, { color: colors.secondary, fontFamily }]}>{name}</Text>
         <Text style={[styles.modalHint, { color: colors.muted }]}>tap to continue</Text>
       </Animated.View>
     </View>

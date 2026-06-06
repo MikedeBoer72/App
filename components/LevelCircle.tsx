@@ -19,6 +19,8 @@ export interface LevelCircleProps {
   progressColor:   string;
   textColor:       string;
   subTextColor:    string;
+  /** Theme font for the level number + tier label. Leave undefined for system. */
+  fontFamily?:     string;
 }
 
 export function LevelCircle({
@@ -32,6 +34,7 @@ export function LevelCircle({
   progressColor,
   textColor,
   subTextColor,
+  fontFamily,
 }: LevelCircleProps) {
   const radius = size / 2 - strokeWidth;
   const cx = size / 2;
@@ -81,8 +84,10 @@ export function LevelCircle({
         />
       </Svg>
       <View style={styles.inner} pointerEvents="none">
-        <Text style={[styles.level, { color: textColor }]}>{level}</Text>
-        <Text style={[styles.name, { color: subTextColor }]}>{levelName.toUpperCase()}</Text>
+        <Text style={[styles.level, { color: textColor, fontFamily }]}>{level}</Text>
+        <Text style={[styles.name, { color: subTextColor, fontFamily }]}>
+          {levelName.toUpperCase()}
+        </Text>
       </View>
     </View>
   );

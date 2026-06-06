@@ -97,9 +97,8 @@ export default function FontsScreen() {
               <Text
                 style={{
                   color:        t.colors.primary,
-                  fontFamily:   t.fontFamily,
+                  fontFamily:   t.fonts.bold,
                   fontSize:     16,
-                  fontWeight:   '700',
                 }}
               >
                 Aa
@@ -119,6 +118,9 @@ export default function FontsScreen() {
               </View>
               <Text style={[styles.desc, { color: theme.colors.secondary }]} numberOfLines={2}>
                 {t.description}
+              </Text>
+              <Text style={[styles.desc, { color: theme.colors.muted, fontFamily: t.fonts.regular }]} numberOfLines={1}>
+                Font: {t.fontLabel}
               </Text>
               <Text style={[styles.statusText, { color: statusColor(status, theme.colors) }]}>
                 {statusLabel(status, t.unlockLevel)}

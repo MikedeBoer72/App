@@ -27,7 +27,7 @@ export default function AboutScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={[styles.brand, { color: theme.colors.primary }]}>YourLevel</Text>
+        <Text style={[styles.brand, { color: theme.colors.primary, fontFamily: theme.fonts.bold }]}>YourLevel</Text>
         <Text style={[styles.tagline, { color: theme.colors.secondary }]}>
           Self-improvement, gamified.
         </Text>

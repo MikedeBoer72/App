@@ -15,6 +15,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import type { Session } from '@supabase/supabase-js';
 
+import { useFonts } from 'expo-font';
+import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
+import { JetBrainsMono_400Regular, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
+import { Cinzel_400Regular, Cinzel_700Bold } from '@expo-google-fonts/cinzel';
+import { Lora_400Regular, Lora_700Bold } from '@expo-google-fonts/lora';
+import { Quicksand_400Regular, Quicksand_700Bold } from '@expo-google-fonts/quicksand';
+
 import { DEFAULT_THEME_ID, getTheme } from '@/constants/themes';
 // Side-effect import: defines the daily-reset background task at
 // module load. Keep this above the component so it runs once on
@@ -34,6 +41,21 @@ import { useAppStore } from '@/store/useAppStore';
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
+
+  // Load theme fonts once at app start. Each name must match its
+  // @expo-google-fonts export AND the string in constants/themes.ts.
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_700Bold,
+    JetBrainsMono_400Regular,
+    JetBrainsMono_700Bold,
+    Cinzel_400Regular,
+    Cinzel_700Bold,
+    Lora_400Regular,
+    Lora_700Bold,
+    Quicksand_400Regular,
+    Quicksand_700Bold,
+  });
 
   const router = useRouter();
   const segments = useSegments();
@@ -133,7 +155,7 @@ export default function RootLayout() {
   //   session, hydrated, no profile -> error screen (load failed)
   //   session, hydrated, profile    -> Slot
   let body: React.ReactNode;
-  if (!sessionChecked) {
+  if (!fontsLoaded || !sessionChecked) {
     body = <Splash colors={splashTheme.colors} />;
   } else if (!session) {
     body = <Slot />;
