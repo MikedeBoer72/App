@@ -154,7 +154,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.background }]}>
       <View style={styles.hero}>
-        <Text style={[styles.title, { color: theme.colors.primary, fontFamily: theme.fonts.bold }]}>YourLevel</Text>
+        <Text style={[styles.title, { color: theme.colors.primary, fontFamily: theme.fonts.heavy }]}>YourLevel</Text>
         <Text style={[styles.tagline, { color: theme.colors.secondary }]}>
           Self-improvement, gamified.
         </Text>

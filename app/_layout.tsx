@@ -16,11 +16,11 @@ import { StatusBar } from 'expo-status-bar';
 import type { Session } from '@supabase/supabase-js';
 
 import { useFonts } from 'expo-font';
-import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
-import { JetBrainsMono_400Regular, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
-import { Cinzel_400Regular, Cinzel_700Bold } from '@expo-google-fonts/cinzel';
-import { Lora_400Regular, Lora_700Bold } from '@expo-google-fonts/lora';
-import { Quicksand_400Regular, Quicksand_700Bold } from '@expo-google-fonts/quicksand';
+import { SpaceGrotesk_400Regular, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import { JetBrainsMono_400Regular, JetBrainsMono_700Bold, JetBrainsMono_800ExtraBold } from '@expo-google-fonts/jetbrains-mono';
+import { Orbitron_400Regular, Orbitron_700Bold, Orbitron_900Black } from '@expo-google-fonts/orbitron';
+import { PlayfairDisplay_400Regular, PlayfairDisplay_700Bold, PlayfairDisplay_900Black } from '@expo-google-fonts/playfair-display';
+import { Outfit_400Regular, Outfit_700Bold, Outfit_900Black } from '@expo-google-fonts/outfit';
 
 import { DEFAULT_THEME_ID, getTheme } from '@/constants/themes';
 // Side-effect import: defines the daily-reset background task at
@@ -45,16 +45,20 @@ export default function RootLayout() {
   // Load theme fonts once at app start. Each name must match its
   // @expo-google-fonts export AND the string in constants/themes.ts.
   const [fontsLoaded] = useFonts({
-    Inter_400Regular,
-    Inter_700Bold,
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_700Bold,
     JetBrainsMono_400Regular,
     JetBrainsMono_700Bold,
-    Cinzel_400Regular,
-    Cinzel_700Bold,
-    Lora_400Regular,
-    Lora_700Bold,
-    Quicksand_400Regular,
-    Quicksand_700Bold,
+    JetBrainsMono_800ExtraBold,
+    Orbitron_400Regular,
+    Orbitron_700Bold,
+    Orbitron_900Black,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_700Bold,
+    PlayfairDisplay_900Black,
+    Outfit_400Regular,
+    Outfit_700Bold,
+    Outfit_900Black,
   });
 
   const router = useRouter();

@@ -3,8 +3,8 @@
 // theme (`green`) requires both the level unlock and a Pro subscription.
 //
 // The font identifiers match the *export names* in @expo-google-fonts
-// packages (e.g. `Inter_700Bold`). These exact strings must also be
-// passed to useFonts in app/_layout.tsx so React Native can resolve
+// packages (e.g. `Orbitron_900Black`). These exact strings must also
+// be passed to useFonts in app/_layout.tsx so React Native can resolve
 // them at render time.
 
 export type ThemeId = 'default' | 'cyberpunk' | 'solo' | 'calm' | 'green';
@@ -17,10 +17,15 @@ export interface Theme {
   description:  string;
   /** Display name shown to humans (the Fonts settings preview, etc.). */
   fontLabel:    string;
-  /** RN fontFamily strings, mapped to @expo-google-fonts export names. */
+  /**
+   * RN fontFamily strings, mapped to @expo-google-fonts export names.
+   * `heavy` is reserved for the biggest-text moments (level number,
+   * level-up celebration); `bold` for headers; `regular` for body.
+   */
   fonts: {
     regular: string;
     bold:    string;
+    heavy:   string;
   };
   colors: {
     background: string;
@@ -34,11 +39,31 @@ export interface Theme {
   };
 }
 
-const INTER     = { regular: 'Inter_400Regular',         bold: 'Inter_700Bold' };
-const JET_MONO  = { regular: 'JetBrainsMono_400Regular', bold: 'JetBrainsMono_700Bold' };
-const CINZEL    = { regular: 'Cinzel_400Regular',        bold: 'Cinzel_700Bold' };
-const LORA      = { regular: 'Lora_400Regular',          bold: 'Lora_700Bold' };
-const QUICKSAND = { regular: 'Quicksand_400Regular',     bold: 'Quicksand_700Bold' };
+const SPACE_GROTESK = {
+  regular: 'SpaceGrotesk_400Regular',
+  bold:    'SpaceGrotesk_700Bold',
+  heavy:   'SpaceGrotesk_700Bold', // Space Grotesk tops out at 700
+};
+const JET_MONO = {
+  regular: 'JetBrainsMono_400Regular',
+  bold:    'JetBrainsMono_700Bold',
+  heavy:   'JetBrainsMono_800ExtraBold',
+};
+const ORBITRON = {
+  regular: 'Orbitron_400Regular',
+  bold:    'Orbitron_700Bold',
+  heavy:   'Orbitron_900Black',
+};
+const PLAYFAIR = {
+  regular: 'PlayfairDisplay_400Regular',
+  bold:    'PlayfairDisplay_700Bold',
+  heavy:   'PlayfairDisplay_900Black',
+};
+const OUTFIT = {
+  regular: 'Outfit_400Regular',
+  bold:    'Outfit_700Bold',
+  heavy:   'Outfit_900Black',
+};
 
 export const THEMES: readonly Theme[] = [
   {
@@ -47,8 +72,8 @@ export const THEMES: readonly Theme[] = [
     unlockLevel: 1,
     isPaid:      false,
     description: 'Clean and simple.',
-    fontLabel:   'Inter',
-    fonts:       INTER,
+    fontLabel:   'Space Grotesk',
+    fonts:       SPACE_GROTESK,
     colors: {
       background: '#0A0A0A',
       surface:    '#141414',
@@ -85,8 +110,8 @@ export const THEMES: readonly Theme[] = [
     unlockLevel: 20,
     isPaid:      false,
     description: 'Shadow Monarch — deep blue-black with violet runes.',
-    fontLabel:   'Cinzel',
-    fonts:       CINZEL,
+    fontLabel:   'Orbitron',
+    fonts:       ORBITRON,
     colors: {
       background: '#06070C',
       surface:    '#0E1020',
@@ -104,8 +129,8 @@ export const THEMES: readonly Theme[] = [
     unlockLevel: 35,
     isPaid:      false,
     description: 'Peaceful yellow and warm white tones.',
-    fontLabel:   'Lora',
-    fonts:       LORA,
+    fontLabel:   'Playfair Display',
+    fonts:       PLAYFAIR,
     colors: {
       background: '#FAFAF0',
       surface:    '#F0EFE2',
@@ -123,8 +148,8 @@ export const THEMES: readonly Theme[] = [
     unlockLevel: 50,
     isPaid:      true,
     description: 'Nature-inspired green palette. Premium.',
-    fontLabel:   'Quicksand',
-    fonts:       QUICKSAND,
+    fontLabel:   'Outfit',
+    fonts:       OUTFIT,
     colors: {
       background: '#0A1A0A',
       surface:    '#13251A',

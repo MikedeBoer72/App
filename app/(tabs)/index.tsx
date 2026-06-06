@@ -182,7 +182,7 @@ export default function Dashboard() {
             <Ionicons name="menu" size={26} color={theme.colors.primary} />
           </Pressable>
 
-          <Text style={[styles.brand, { color: theme.colors.primary, fontFamily: theme.fonts.bold }]}>YourLevel</Text>
+          <Text style={[styles.brand, { color: theme.colors.primary, fontFamily: theme.fonts.heavy }]}>YourLevel</Text>
 
           <StreakDisplay
             streak={profile.day_streak}
@@ -212,7 +212,7 @@ export default function Dashboard() {
             progressColor={theme.colors.accent}
             textColor={theme.colors.primary}
             subTextColor={theme.colors.secondary}
-            fontFamily={theme.fonts.bold}
+            fontFamily={theme.fonts.heavy}
           />
           <Text style={[styles.xpRead, { color: theme.colors.secondary }]}>
             {progress.currentXp} / {progress.xpToNextLevel} XP
@@ -291,7 +291,7 @@ export default function Dashboard() {
             level={levelUpEvent?.to ?? 0}
             name={levelUpEvent?.levelName ?? ''}
             colors={theme.colors}
-            fontFamily={theme.fonts.bold}
+            fontFamily={theme.fonts.heavy}
           />
         </Pressable>
       </Modal>
