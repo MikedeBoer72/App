@@ -24,6 +24,12 @@ export interface Profile {
   onboarding_completed:            boolean;
   created_at:                      string;
   last_active_date:                string;          // 'YYYY-MM-DD'
+  // Daily caps (resets at daily-reset close-out). Survive task/
+  // bad-habit deletion so the user can't game the cap by deleting
+  // completed items and re-adding new ones.
+  daily_task_xp_earned:            number;
+  daily_bad_habit_xp_lost:         number;
+  bad_habits_penalized_today:      string[];
 }
 
 export interface Task {

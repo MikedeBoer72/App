@@ -248,7 +248,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const task = tasks.find((t) => t.id === taskId);
     if (!task || task.is_completed) return { awarded: 0, leveledUp: false };
 
-    const award = clampDailyTaskXp(task.xp_value, dailyTaskXpAwarded(tasks));
+    // Cap is enforced against the profile counter, not the current
+    // tasks array, so deleting+re-adding completed tasks can't grind
+    // past the 300/day limit.
+    const award = clampDailyTaskXp(task.xp_value, profile.daily_task_xp_earned);
     const completed: Task = {
       ...task,
       is_completed: true,
@@ -261,7 +264,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     if (award > 0) {
       const xp = applyXpDelta({ total_xp: profile.total_xp, level: profile.level, deltaXp: award });
-      nextProfile = { ...nextProfile, total_xp: xp.total_xp, current_xp: xp.current_xp, level: xp.level };
+      nextProfile = {
+        ...nextProfile,
+        total_xp:               xp.total_xp,
+        current_xp:             xp.current_xp,
+        level:                  xp.level,
+        daily_task_xp_earned:   profile.daily_task_xp_earned + award,
+      };
       if (xp.leveledUpFrom != null) {
         levelUpEvent = levelUpEventFor(xp.level, xp.leveledUpFrom);
       }
@@ -383,20 +392,33 @@ export const useAppStore = create<AppStore>((set, get) => ({
     };
     const nextHabits = badHabits.map((h) => (h.id === habitId ? done : h));
 
-    // XP penalty applies every time. Streak break itself is recorded
-    // at daily-reset close-out so the order of completions during the
-    // day can't double-apply applyDayMiss.
-    const xp = applyXpDelta({
-      total_xp: profile.total_xp,
-      level:    profile.level,
-      deltaXp:  -habit.xp_penalty,
-    });
-    const nextProfile: Profile = {
-      ...profile,
-      total_xp:   xp.total_xp,
-      current_xp: xp.current_xp,
-      level:      xp.level,
-    };
+    // Penalty is skipped if a bad habit with this name has already
+    // been penalized today - prevents gaming by deleting + re-adding
+    // the same habit. Streak break still happens at daily-reset
+    // close-out, not here, so the order of completions can't
+    // double-apply applyDayMiss.
+    const normalized = habit.name.trim().toLowerCase();
+    const alreadyPenalized = profile.bad_habits_penalized_today.includes(normalized);
+
+    let nextProfile: Profile;
+    if (alreadyPenalized) {
+      // Mark done locally + remote, but no XP change.
+      nextProfile = profile;
+    } else {
+      const xp = applyXpDelta({
+        total_xp: profile.total_xp,
+        level:    profile.level,
+        deltaXp:  -habit.xp_penalty,
+      });
+      nextProfile = {
+        ...profile,
+        total_xp:                   xp.total_xp,
+        current_xp:                 xp.current_xp,
+        level:                      xp.level,
+        daily_bad_habit_xp_lost:    profile.daily_bad_habit_xp_lost + habit.xp_penalty,
+        bad_habits_penalized_today: [...profile.bad_habits_penalized_today, normalized],
+      };
+    }
 
     set({ badHabits: nextHabits, profile: nextProfile });
 
@@ -405,7 +427,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         supabase.from('bad_habits')
           .update({ is_done: true, done_at: done.done_at })
           .eq('id', habitId),
-        persistProfileScore(profile.id, nextProfile),
+        alreadyPenalized ? Promise.resolve() : persistProfileScore(profile.id, nextProfile),
       ]);
     } catch (err) {
       console.warn('[useAppStore] completeBadHabit persist failed', err);
@@ -506,6 +528,9 @@ async function persistProfileScore(userId: string, p: Profile): Promise<void> {
       highest_streak:                 p.highest_streak,
       second_chance_active:           p.second_chance_active,
       second_chance_days_remaining:   p.second_chance_days_remaining,
+      daily_task_xp_earned:           p.daily_task_xp_earned,
+      daily_bad_habit_xp_lost:        p.daily_bad_habit_xp_lost,
+      bad_habits_penalized_today:     p.bad_habits_penalized_today,
     })
     .eq('id', userId);
   if (error) throw error;

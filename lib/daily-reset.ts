@@ -170,6 +170,10 @@ export async function runDailyResetIfNeeded(opts: {
     second_chance_active:           running.second_chance_active,
     second_chance_days_remaining:   running.second_chance_days_remaining,
     last_active_date:               today,
+    // Reset the daily caps now that a new day has started.
+    daily_task_xp_earned:           0,
+    daily_bad_habit_xp_lost:        0,
+    bad_habits_penalized_today:     [],
   };
   const { data: updated, error: upErr } = await opts.supabase
     .from('profiles')

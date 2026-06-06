@@ -147,18 +147,18 @@ export const THEMES: readonly Theme[] = [
     name:        'Green Vibes',
     unlockLevel: 50,
     isPaid:      true,
-    description: 'Nature-inspired green palette. Premium.',
+    description: 'Fresh garden — bright greens on a sunlit canvas.',
     fontLabel:   'Outfit',
     fonts:       OUTFIT,
     colors: {
-      background: '#0A1A0A',
-      surface:    '#13251A',
-      primary:    '#E8FFE8',
-      secondary:  '#90EE90',
-      accent:     '#32CD32',
-      danger:     '#FF7A6B',
-      success:    '#7CFC00',
-      muted:      '#1F3520',
+      background: '#F1F8E9',  // pale mint white
+      surface:    '#FFFFFF',  // crisp card
+      primary:    '#14532D',  // deep forest text
+      secondary:  '#2D6A4F',  // mid forest
+      accent:     '#16A34A',  // vivid grass green
+      danger:     '#DC2626',  // alarm red
+      success:    '#16A34A',
+      muted:      '#BBF7D0',  // pale mint for dividers
     },
   },
 ] as const;
