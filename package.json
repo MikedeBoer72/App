@@ -8,7 +8,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@expo-google-fonts/audiowide": "^0.4.1",
     "@expo-google-fonts/cinzel": "^0.4.2",
+    "@expo-google-fonts/dm-serif-display": "^0.4.2",
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/jetbrains-mono": "^0.4.1",
     "@expo-google-fonts/lora": "^0.4.2",
@@ -16,6 +18,8 @@
     "@expo-google-fonts/outfit": "^0.4.3",
     "@expo-google-fonts/playfair-display": "^0.4.2",
     "@expo-google-fonts/quicksand": "^0.4.1",
+    "@expo-google-fonts/rubik": "^0.4.2",
+    "@expo-google-fonts/russo-one": "^0.4.1",
     "@expo-google-fonts/space-grotesk": "^0.4.1",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",

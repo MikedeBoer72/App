@@ -9,10 +9,14 @@
 // Tier names are intentionally sparse (only 4) — one per band.
 
 export const LEVEL_TIERS = [
-  { minLevel: 1,  name: 'Beginner'   },
-  { minLevel: 5,  name: 'Challenger' },
-  { minLevel: 20, name: 'Warrior'    },
-  { minLevel: 50, name: 'Legend'     },
+  { minLevel: 1,   name: 'Beginner'   },
+  { minLevel: 5,   name: 'Challenger' },
+  { minLevel: 20,  name: 'Warrior'    },
+  { minLevel: 50,  name: 'Legend'     },
+  { minLevel: 100, name: 'Master'     },
+  { minLevel: 150, name: 'Mythic'     },
+  { minLevel: 200, name: 'Ascended'   },
+  { minLevel: 250, name: 'Sovereign'  },
 ] as const;
 
 export const XP_BANDS = [

@@ -17,10 +17,18 @@ import type { Session } from '@supabase/supabase-js';
 
 import { useFonts } from 'expo-font';
 import { SpaceGrotesk_400Regular, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
-import { JetBrainsMono_400Regular, JetBrainsMono_700Bold, JetBrainsMono_800ExtraBold } from '@expo-google-fonts/jetbrains-mono';
-import { Orbitron_400Regular, Orbitron_700Bold, Orbitron_900Black } from '@expo-google-fonts/orbitron';
+import { Inter_400Regular, Inter_700Bold, Inter_900Black } from '@expo-google-fonts/inter';
 import { PlayfairDisplay_400Regular, PlayfairDisplay_700Bold, PlayfairDisplay_900Black } from '@expo-google-fonts/playfair-display';
+import { Rubik_400Regular, Rubik_700Bold, Rubik_900Black } from '@expo-google-fonts/rubik';
 import { Outfit_400Regular, Outfit_700Bold, Outfit_900Black } from '@expo-google-fonts/outfit';
+import { Quicksand_400Regular, Quicksand_700Bold } from '@expo-google-fonts/quicksand';
+import { Lora_400Regular, Lora_700Bold } from '@expo-google-fonts/lora';
+import { Cinzel_400Regular, Cinzel_700Bold, Cinzel_900Black } from '@expo-google-fonts/cinzel';
+import { DMSerifDisplay_400Regular } from '@expo-google-fonts/dm-serif-display';
+import { Orbitron_400Regular, Orbitron_700Bold, Orbitron_900Black } from '@expo-google-fonts/orbitron';
+import { RussoOne_400Regular } from '@expo-google-fonts/russo-one';
+import { Audiowide_400Regular } from '@expo-google-fonts/audiowide';
+import { JetBrainsMono_400Regular, JetBrainsMono_700Bold, JetBrainsMono_800ExtraBold } from '@expo-google-fonts/jetbrains-mono';
 
 import { DEFAULT_THEME_ID, getTheme } from '@/constants/themes';
 // Side-effect import: defines the daily-reset background task at
@@ -45,20 +53,19 @@ export default function RootLayout() {
   // Load theme fonts once at app start. Each name must match its
   // @expo-google-fonts export AND the string in constants/themes.ts.
   const [fontsLoaded] = useFonts({
-    SpaceGrotesk_400Regular,
-    SpaceGrotesk_700Bold,
-    JetBrainsMono_400Regular,
-    JetBrainsMono_700Bold,
-    JetBrainsMono_800ExtraBold,
-    Orbitron_400Regular,
-    Orbitron_700Bold,
-    Orbitron_900Black,
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_700Bold,
-    PlayfairDisplay_900Black,
-    Outfit_400Regular,
-    Outfit_700Bold,
-    Outfit_900Black,
+    SpaceGrotesk_400Regular, SpaceGrotesk_700Bold,
+    Inter_400Regular, Inter_700Bold, Inter_900Black,
+    PlayfairDisplay_400Regular, PlayfairDisplay_700Bold, PlayfairDisplay_900Black,
+    Rubik_400Regular, Rubik_700Bold, Rubik_900Black,
+    Outfit_400Regular, Outfit_700Bold, Outfit_900Black,
+    Quicksand_400Regular, Quicksand_700Bold,
+    Lora_400Regular, Lora_700Bold,
+    Cinzel_400Regular, Cinzel_700Bold, Cinzel_900Black,
+    DMSerifDisplay_400Regular,
+    Orbitron_400Regular, Orbitron_700Bold, Orbitron_900Black,
+    RussoOne_400Regular,
+    Audiowide_400Regular,
+    JetBrainsMono_400Regular, JetBrainsMono_700Bold, JetBrainsMono_800ExtraBold,
   });
 
   const router = useRouter();
