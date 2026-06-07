@@ -188,7 +188,7 @@ export default function AddTasksScreen() {
       </View>
 
       <Text style={[styles.warn, { color: theme.colors.secondary }]}>
-        Adding makes each task worth {xpPerTaskAfterAdd} XP (300 / {tasks.length + 1} tasks today).
+        With {tasks.length + 1} task{tasks.length + 1 === 1 ? '' : 's'} today each is worth {xpPerTaskAfterAdd} XP.
       </Text>
 
       {/* Suggestions OR recent chips */}

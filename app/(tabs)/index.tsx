@@ -29,7 +29,7 @@ import { LevelCircle } from '@/components/LevelCircle';
 import { StreakDisplay } from '@/components/StreakDisplay';
 import { TaskItem } from '@/components/TaskItem';
 import { XPBar } from '@/components/XPBar';
-import { DAILY_TASK_XP_CAP, getXpProgress } from '@/lib/xp';
+import { DAILY_TASK_XP_CAP, getXpProgress, xpValuePerTask } from '@/lib/xp';
 import type { BadHabit, Task } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -57,6 +57,18 @@ export default function Dashboard() {
     () => getXpProgress(profile?.total_xp ?? 0),
     [profile?.total_xp],
   );
+
+  // "X XP left today" = the realistic amount the user can still
+  // earn from today's tasks. min of:
+  //   (a) the incomplete tasks each at their current xp_value, and
+  //   (b) what's left in the 300/day cap.
+  const xpLeftToday = useMemo(() => {
+    if (!profile) return 0;
+    const incomplete = tasks.filter((t) => !t.is_completed).length;
+    const valuePer = xpValuePerTask(tasks.length);
+    const capRemaining = Math.max(0, DAILY_TASK_XP_CAP - profile.daily_task_xp_earned);
+    return Math.min(incomplete * valuePer, capRemaining);
+  }, [profile, tasks]);
 
   // Floating "+XP" toasts. Pushed by onToggleTask; each renders
   // absolutely over the level circle and removes itself after 1.6s.
@@ -230,7 +242,7 @@ export default function Dashboard() {
               height={6}
             />
             <Text style={[styles.dailyCapLabel, { color: theme.colors.secondary, fontFamily: theme.fonts.bold }]}>
-              {Math.max(0, DAILY_TASK_XP_CAP - profile.daily_task_xp_earned)} XP left today
+              {xpLeftToday} XP left today
             </Text>
           </View>
 

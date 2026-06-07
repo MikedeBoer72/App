@@ -91,18 +91,20 @@ export function getLevelName(level: number): string {
 
 /**
  * XP value of one task given how many tasks the user has today.
- * The 300/day cap is distributed evenly: 1 task = 300 XP, 2 = 150,
- * 3 = 100, 4 = 75, 6 = 50, etc. Rounded down so the cap is never
- * exceeded by accidental over-distribution; the daily counter
- * still hard-caps anyway.
  *
- * Completed tasks keep the value they had at completion time
- * (locked in via `tasks.xp_value`); this function is what stamps
- * the live value onto incomplete tasks whenever the day's list
- * changes.
+ * Rules:
+ *   - 1 task  -> 100 XP
+ *   - 2 tasks -> 100 XP each (200 total)
+ *   - 3 tasks -> 100 XP each (300 total = the daily cap)
+ *   - 4+      -> floor(300 / count); the 300 cap is split evenly
+ *
+ * Floor() keeps the per-task value an integer, and the total never
+ * exceeds 300. The daily counter still hard-caps awarded XP so
+ * rounding loss can't accidentally let totals creep over.
  */
 export function xpValuePerTask(taskCountToday: number): number {
   if (taskCountToday <= 0) return 0;
+  if (taskCountToday <= 3) return 100;
   return Math.floor(DAILY_TASK_XP_CAP / taskCountToday);
 }
 
