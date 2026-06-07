@@ -190,7 +190,11 @@ export default function Dashboard() {
             <Ionicons name="menu" size={26} color={theme.colors.primary} />
           </Pressable>
 
-          <Text style={[styles.brand, { color: theme.colors.primary, fontFamily: theme.fonts.heavy }]}>YourLevel</Text>
+          {/* Absolute-center the brand so it stays put regardless of
+              the side columns' widths. */}
+          <View pointerEvents="none" style={styles.brandWrap}>
+            <Text style={[styles.brand, { color: theme.colors.primary, fontFamily: theme.fonts.heavy }]}>YourLevel</Text>
+          </View>
 
           <View style={styles.headerRight}>
             <StreakDisplay
@@ -199,7 +203,7 @@ export default function Dashboard() {
               color={theme.colors.primary}
               warnColor={theme.colors.danger}
             />
-            <Text style={[styles.todayChip, { color: theme.colors.secondary }]}>
+            <Text style={[styles.todayChip, { color: theme.colors.primary }]}>
               {netXpToday}/{DAILY_TASK_XP_CAP} XP today
             </Text>
           </View>
@@ -463,8 +467,9 @@ const styles = StyleSheet.create({
   atRisk:         { fontSize: 12, fontWeight: '700', letterSpacing: 1, textAlign: 'center', textTransform: 'uppercase' },
   circleWrap:     { alignItems: 'center', gap: 12, marginVertical: 8 },
   xpRead:         { fontSize: 13, letterSpacing: 0.5 },
-  headerRight:    { alignItems: 'flex-end', gap: 2 },
-  todayChip:      { fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
+  brandWrap:      { position: 'absolute', left: 0, right: 0, alignItems: 'center', justifyContent: 'center', height: '100%' },
+  headerRight:    { alignItems: 'flex-end' },
+  todayChip:      { fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginTop: 6 },
   section:        { gap: 10 },
   sectionHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle:   { fontSize: 20, fontWeight: '800', letterSpacing: 0.3 },
