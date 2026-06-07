@@ -153,12 +153,12 @@ export const THEMES: readonly Theme[] = [
     colors: {
       background: '#F7FEE7',  // kiwi-milkshake cream (lime-tinted off-white)
       surface:    '#FFFFFF',  // clean white card pops against the cream
-      primary:    '#1A2E05',  // deep olive-black for max readability
-      secondary:  '#4D7C0F',  // mid kiwi for secondary text
-      accent:     '#65A30D',  // vivid kiwi-grass green
-      danger:     '#DC2626',  // proper red for bad-habit penalties
+      primary:    '#1A2E05',  // near-black olive for top contrast against bg
+      secondary:  '#365314',  // deep olive for sub-labels / descriptions
+      accent:     '#65A30D',  // vivid kiwi-grass for buttons / level number
+      danger:     '#B91C1C',  // proper red, slightly darker for cream bg
       success:    '#16A34A',  // saturated grass green for "win" moments
-      muted:      '#BEF264',  // lime-leaf, for dividers / disabled
+      muted:      '#4D7C0F',  // mid-dark olive: small text + dividers stay legible
     },
   },
 ] as const;
