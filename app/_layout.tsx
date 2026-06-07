@@ -8,6 +8,10 @@
 //   5. Session, level >= 5, not subscribed            -> /settings/subscription
 //   6. Otherwise                                      -> /(tabs)
 
+// Must be imported once at app entry for gesture-handler to wire up
+// the native bridge. Required by react-native-draggable-flatlist.
+import 'react-native-gesture-handler';
+
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -21,7 +25,7 @@ import { Inter_400Regular, Inter_700Bold, Inter_900Black } from '@expo-google-fo
 import { PlayfairDisplay_400Regular, PlayfairDisplay_700Bold, PlayfairDisplay_900Black } from '@expo-google-fonts/playfair-display';
 import { Rubik_400Regular, Rubik_700Bold, Rubik_900Black } from '@expo-google-fonts/rubik';
 import { Outfit_400Regular, Outfit_700Bold, Outfit_900Black } from '@expo-google-fonts/outfit';
-import { Quicksand_400Regular, Quicksand_700Bold } from '@expo-google-fonts/quicksand';
+import { MajorMonoDisplay_400Regular } from '@expo-google-fonts/major-mono-display';
 import { Lora_400Regular, Lora_700Bold } from '@expo-google-fonts/lora';
 import { Cinzel_400Regular, Cinzel_700Bold, Cinzel_900Black } from '@expo-google-fonts/cinzel';
 import { DMSerifDisplay_400Regular } from '@expo-google-fonts/dm-serif-display';
@@ -58,7 +62,7 @@ export default function RootLayout() {
     PlayfairDisplay_400Regular, PlayfairDisplay_700Bold, PlayfairDisplay_900Black,
     Rubik_400Regular, Rubik_700Bold, Rubik_900Black,
     Outfit_400Regular, Outfit_700Bold, Outfit_900Black,
-    Quicksand_400Regular, Quicksand_700Bold,
+    MajorMonoDisplay_400Regular,
     Lora_400Regular, Lora_700Bold,
     Cinzel_400Regular, Cinzel_700Bold, Cinzel_900Black,
     DMSerifDisplay_400Regular,

@@ -14,9 +14,9 @@ export type ThemeId =
   | 'calm'
   | 'slate'
   | 'green'
-  | 'ocean'
+  | 'vapor'
   | 'sunset'
-  | 'midnight'
+  | 'vampire'
   | 'royal'
   | 'solo'
   | 'inferno'
@@ -85,11 +85,6 @@ const OUTFIT = {
   bold:    'Outfit_700Bold',
   heavy:   'Outfit_900Black',
 };
-const QUICKSAND = {
-  regular: 'Quicksand_400Regular',
-  bold:    'Quicksand_700Bold',
-  heavy:   'Quicksand_700Bold',              // tops at 700
-};
 const LORA = {
   regular: 'Lora_400Regular',
   bold:    'Lora_700Bold',
@@ -99,6 +94,11 @@ const CINZEL = {
   regular: 'Cinzel_400Regular',
   bold:    'Cinzel_700Bold',
   heavy:   'Cinzel_900Black',
+};
+const MAJOR_MONO = {                          // single-weight retro mono
+  regular: 'MajorMonoDisplay_400Regular',
+  bold:    'MajorMonoDisplay_400Regular',
+  heavy:   'MajorMonoDisplay_400Regular',
 };
 const DM_SERIF = {                            // single-weight display
   regular: 'DMSerifDisplay_400Regular',
@@ -227,22 +227,22 @@ export const THEMES: readonly Theme[] = [
     },
   },
   {
-    id:          'ocean',
-    name:        'Ocean',
+    id:          'vapor',
+    name:        'Vapor',
     unlockLevel: 30,
     isPaid:      true,
-    description: 'Deep blue, like the abyss.',
-    fontLabel:   'Quicksand',
-    fonts:       QUICKSAND,
+    description: 'Vaporwave. Pink, cyan and 80s neon.',
+    fontLabel:   'Major Mono Display',
+    fonts:       MAJOR_MONO,
     colors: {
-      background: '#0C4A6E',
-      surface:    '#075985',
-      primary:    '#E0F2FE',
-      secondary:  '#BAE6FD',
-      accent:     '#06B6D4',
-      danger:     '#F87171',
-      success:    '#34D399',
-      muted:      '#155E75',
+      background: '#1A0B2E',  // deep purple-black
+      surface:    '#2E1A47',  // mid purple
+      primary:    '#F0E6FF',  // lavender white
+      secondary:  '#FF71CE',  // hot pink
+      accent:     '#01CDFE',  // electric cyan
+      danger:     '#FF4F4F',
+      success:    '#05FFA1',  // mint
+      muted:      '#4A2C6B',  // dim purple
     },
   },
   {
@@ -265,22 +265,22 @@ export const THEMES: readonly Theme[] = [
     },
   },
   {
-    id:          'midnight',
-    name:        'Midnight',
+    id:          'vampire',
+    name:        'Vampire',
     unlockLevel: 50,
     isPaid:      true,
-    description: 'Mysterious night blue with indigo runes.',
+    description: 'Blood red on black velvet. Gothic.',
     fontLabel:   'Cinzel',
     fonts:       CINZEL,
     colors: {
-      background: '#0F172A',
-      surface:    '#1E293B',
-      primary:    '#E2E8F0',
-      secondary:  '#CBD5E1',
-      accent:     '#818CF8',
-      danger:     '#F87171',
-      success:    '#4ADE80',
-      muted:      '#334155',
+      background: '#0A0001',  // near-black, hint of red
+      surface:    '#1A0408',  // dark red-black
+      primary:    '#F5E4E4',  // off-white with red tint
+      secondary:  '#FCA5A5',  // pale rose
+      accent:     '#DC2626',  // blood red
+      danger:     '#B91C1C',  // deeper alarm red
+      success:    '#4ADE80',  // clean lime for contrast
+      muted:      '#2A0408',  // very dim red-black for dividers
     },
   },
   {

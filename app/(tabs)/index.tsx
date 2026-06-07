@@ -17,12 +17,16 @@ import {
   Animated,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  NestableDraggableFlatList,
+  NestableScrollContainer,
+  type RenderItemParams,
+} from 'react-native-draggable-flatlist';
 
 import { BadHabitItem } from '@/components/BadHabitItem';
 import { LevelCircle } from '@/components/LevelCircle';
@@ -46,11 +50,13 @@ export default function Dashboard() {
   const uncompleteTask = useAppStore((s) => s.uncompleteTask);
   const renameTask = useAppStore((s) => s.renameTask);
   const deleteTask = useAppStore((s) => s.deleteTask);
+  const reorderTasks = useAppStore((s) => s.reorderTasks);
 
   const completeBadHabit = useAppStore((s) => s.completeBadHabit);
   const uncompleteBadHabit = useAppStore((s) => s.uncompleteBadHabit);
   const renameBadHabit = useAppStore((s) => s.renameBadHabit);
   const deleteBadHabit = useAppStore((s) => s.deleteBadHabit);
+  const reorderBadHabits = useAppStore((s) => s.reorderBadHabits);
 
   const progress = useMemo(
     () => getXpProgress(profile?.total_xp ?? 0),
@@ -178,7 +184,7 @@ export default function Dashboard() {
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <NestableScrollContainer contentContainerStyle={styles.scroll}>
         {/* Header */}
         <View style={styles.header}>
           <Pressable
@@ -254,18 +260,29 @@ export default function Dashboard() {
           emptyColor={theme.colors.muted}
           fontFamily={theme.fonts.bold}
         >
-          {tasks.map((t) => (
-            <TaskItem
-              key={t.id}
-              task={t}
-              primaryColor={theme.colors.primary}
-              mutedColor={theme.colors.muted}
-              accentColor={theme.colors.accent}
-              surfaceColor={theme.colors.surface}
-              onToggle={onToggleTask}
-              onOpenMenu={onOpenTaskMenu}
-            />
-          ))}
+          <NestableDraggableFlatList
+            data={tasks}
+            keyExtractor={(t) => t.id}
+            activationDistance={10}
+            onDragEnd={({ data }) => void reorderTasks(data.map((t) => t.id))}
+            renderItem={({ item, drag, isActive }: RenderItemParams<Task>) => (
+              <Pressable
+                onLongPress={drag}
+                delayLongPress={250}
+                style={{ opacity: isActive ? 0.85 : 1, marginBottom: 8 }}
+              >
+                <TaskItem
+                  task={item}
+                  primaryColor={theme.colors.primary}
+                  mutedColor={theme.colors.muted}
+                  accentColor={theme.colors.accent}
+                  surfaceColor={theme.colors.surface}
+                  onToggle={onToggleTask}
+                  onOpenMenu={onOpenTaskMenu}
+                />
+              </Pressable>
+            )}
+          />
         </Section>
 
         {/* Bad habits */}
@@ -278,25 +295,36 @@ export default function Dashboard() {
           emptyColor={theme.colors.muted}
           fontFamily={theme.fonts.bold}
         >
-          {badHabits.map((h) => (
-            <BadHabitItem
-              key={h.id}
-              habit={h}
-              primaryColor={theme.colors.primary}
-              mutedColor={theme.colors.muted}
-              dangerColor={theme.colors.danger}
-              surfaceColor={theme.colors.surface}
-              onToggle={onToggleBadHabit}
-              onOpenMenu={onOpenHabitMenu}
-            />
-          ))}
+          <NestableDraggableFlatList
+            data={badHabits}
+            keyExtractor={(h) => h.id}
+            activationDistance={10}
+            onDragEnd={({ data }) => void reorderBadHabits(data.map((h) => h.id))}
+            renderItem={({ item, drag, isActive }: RenderItemParams<BadHabit>) => (
+              <Pressable
+                onLongPress={drag}
+                delayLongPress={250}
+                style={{ opacity: isActive ? 0.85 : 1, marginBottom: 8 }}
+              >
+                <BadHabitItem
+                  habit={item}
+                  primaryColor={theme.colors.primary}
+                  mutedColor={theme.colors.muted}
+                  dangerColor={theme.colors.danger}
+                  surfaceColor={theme.colors.surface}
+                  onToggle={onToggleBadHabit}
+                  onOpenMenu={onOpenHabitMenu}
+                />
+              </Pressable>
+            )}
+          />
         </Section>
 
         {/* Footer */}
         <Text style={[styles.footer, { color: theme.colors.muted }]}>
           {formatToday()}  ·  Day starts {formatDayStart(profile.day_start_time)}
         </Text>
-      </ScrollView>
+      </NestableScrollContainer>
 
       {/* Level-up celebration */}
       <Modal

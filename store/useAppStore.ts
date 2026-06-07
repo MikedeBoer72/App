@@ -76,13 +76,15 @@ interface AppStore {
   uncompleteTask:  (taskId: string) => Promise<void>;
   renameTask:      (taskId: string, name: string) => Promise<void>;
   deleteTask:      (taskId: string) => Promise<void>;
+  reorderTasks:    (orderedIds: string[]) => Promise<void>;
 
   // ---- bad habit actions ----
-  addBadHabit:        (name: string) => Promise<BadHabit | null>;
-  completeBadHabit:   (habitId: string) => Promise<void>;
-  uncompleteBadHabit: (habitId: string) => Promise<void>;
-  renameBadHabit:     (habitId: string, name: string) => Promise<void>;
-  deleteBadHabit:     (habitId: string) => Promise<void>;
+  addBadHabit:         (name: string) => Promise<BadHabit | null>;
+  completeBadHabit:    (habitId: string) => Promise<void>;
+  uncompleteBadHabit:  (habitId: string) => Promise<void>;
+  renameBadHabit:      (habitId: string, name: string) => Promise<void>;
+  deleteBadHabit:      (habitId: string) => Promise<void>;
+  reorderBadHabits:    (orderedIds: string[]) => Promise<void>;
 
   // ---- misc ----
   setTheme:            (themeId: ThemeId) => Promise<void>;
@@ -171,8 +173,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const today = currentDayFor(new Date(), profile.day_start_time);
 
       const [{ data: tasks }, { data: habits }] = await Promise.all([
-        supabase.from('tasks')      .select('*').eq('user_id', userId).eq('date', today),
-        supabase.from('bad_habits') .select('*').eq('user_id', userId).eq('date', today),
+        supabase.from('tasks')
+          .select('*').eq('user_id', userId).eq('date', today)
+          .order('order_index', { ascending: true })
+          .order('created_at',  { ascending: true }),
+        supabase.from('bad_habits')
+          .select('*').eq('user_id', userId).eq('date', today)
+          .order('order_index', { ascending: true })
+          .order('created_at',  { ascending: true }),
       ]);
 
       set({
@@ -222,16 +230,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
     // incomplete task is worth floor(300 / newTotal).
     const newTotal = get().tasks.length + 1;
     const xpValue = xpValuePerTask(newTotal);
+    const nextOrderIndex = Math.max(0, ...get().tasks.map((t) => t.order_index)) + 1;
 
     try {
       const { data, error } = await supabase
         .from('tasks')
         .insert({
-          user_id:    profile.id,
-          name:       trimmed,
-          is_primary: true,
-          xp_value:   xpValue,
-          date:       today,
+          user_id:     profile.id,
+          name:        trimmed,
+          is_primary:  true,
+          xp_value:    xpValue,
+          date:        today,
+          order_index: nextOrderIndex,
         })
         .select()
         .single<Task>();
@@ -418,6 +428,36 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
 
+  async reorderTasks(orderedIds) {
+    const { profile, tasks } = get();
+    if (!profile) return;
+
+    // Apply the new order locally first (optimistic) then push the
+    // order_index updates in parallel. Rows missing from orderedIds
+    // (concurrent insert) keep their existing order_index.
+    const byId = new Map(tasks.map((t) => [t.id, t]));
+    const reordered = orderedIds
+      .map((id) => byId.get(id))
+      .filter((t): t is Task => !!t);
+    if (reordered.length !== tasks.length) {
+      // Append any tasks not in the new order so we don't lose them.
+      for (const t of tasks) if (!orderedIds.includes(t.id)) reordered.push(t);
+    }
+    const stamped = reordered.map((t, i) => ({ ...t, order_index: i }));
+    set({ tasks: stamped });
+
+    try {
+      await Promise.all(
+        stamped.map((t, i) =>
+          supabase.from('tasks').update({ order_index: i }).eq('id', t.id),
+        ),
+      );
+    } catch (err) {
+      console.warn('[useAppStore] reorderTasks failed', err);
+      await get().loadForUser(profile.id);
+    }
+  },
+
   // ---------------------------------------------------------------------
   // Bad habit actions
   // ---------------------------------------------------------------------
@@ -429,6 +469,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!trimmed) return null;
 
     const today = currentDayFor(new Date(), profile.day_start_time);
+    const nextOrderIndex = Math.max(0, ...get().badHabits.map((h) => h.order_index)) + 1;
 
     try {
       const { data, error } = await supabase
@@ -438,6 +479,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
           name:        trimmed,
           xp_penalty:  BAD_HABIT_PENALTY,
           date:        today,
+          order_index: nextOrderIndex,
         })
         .select()
         .single<BadHabit>();
@@ -579,6 +621,31 @@ export const useAppStore = create<AppStore>((set, get) => ({
       await supabase.from('bad_habits').delete().eq('id', habitId);
     } catch (err) {
       console.warn('[useAppStore] deleteBadHabit failed', err);
+      await get().loadForUser(profile.id);
+    }
+  },
+
+  async reorderBadHabits(orderedIds) {
+    const { profile, badHabits } = get();
+    if (!profile) return;
+    const byId = new Map(badHabits.map((h) => [h.id, h]));
+    const reordered = orderedIds
+      .map((id) => byId.get(id))
+      .filter((h): h is BadHabit => !!h);
+    if (reordered.length !== badHabits.length) {
+      for (const h of badHabits) if (!orderedIds.includes(h.id)) reordered.push(h);
+    }
+    const stamped = reordered.map((h, i) => ({ ...h, order_index: i }));
+    set({ badHabits: stamped });
+
+    try {
+      await Promise.all(
+        stamped.map((h, i) =>
+          supabase.from('bad_habits').update({ order_index: i }).eq('id', h.id),
+        ),
+      );
+    } catch (err) {
+      console.warn('[useAppStore] reorderBadHabits failed', err);
       await get().loadForUser(profile.id);
     }
   },

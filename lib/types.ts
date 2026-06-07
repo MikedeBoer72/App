@@ -42,6 +42,7 @@ export interface Task {
   created_at:    string;
   completed_at:  string | null;
   date:          string;
+  order_index:   number;
 }
 
 export interface BadHabit {
@@ -53,6 +54,7 @@ export interface BadHabit {
   created_at:   string;
   done_at:      string | null;
   date:         string;
+  order_index:  number;
 }
 
 export interface TaskHistoryEntry {
