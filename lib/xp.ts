@@ -136,21 +136,28 @@ export interface XpDeltaResult {
 /**
  * Applies a positive or negative XP delta to a running total.
  *
- * Levels are monotonic: a penalty can shave XP but never costs you a
- * level. The floor is `calculateTotalXpForLevel(currentLevel)` — i.e.
- * a penalty at the very start of a level is a no-op. This keeps users
- * from getting kicked back through the L5 paywall by a bad habit.
+ * Default: levels are monotonic. A penalty can shave XP but never
+ * costs you a level — total_xp is floored at the cumulative XP for
+ * the input level. Avoids users getting kicked back through the
+ * level-5 paywall by a bad habit.
+ *
+ * `allowLevelDown: true` skips that floor — used for uncheck
+ * refunds, where the whole point is to reverse a prior completion
+ * exactly (including a level-up triggered by it).
  */
 export function applyXpDelta(opts: {
-  total_xp:   number;
-  level:      number;
-  deltaXp:    number;
+  total_xp:         number;
+  level:            number;
+  deltaXp:          number;
+  allowLevelDown?:  boolean;
 }): XpDeltaResult {
   const rawTotal = Math.max(0, opts.total_xp + opts.deltaXp);
   const recomputed = getLevelFromXp(rawTotal);
-  const finalLevel = Math.max(opts.level, recomputed);
+  const allowDown = opts.allowLevelDown ?? false;
+
+  const finalLevel = allowDown ? recomputed : Math.max(opts.level, recomputed);
   const floor = calculateTotalXpForLevel(finalLevel);
-  const newTotal = Math.max(rawTotal, floor);
+  const newTotal = allowDown ? rawTotal : Math.max(rawTotal, floor);
   return {
     total_xp:      newTotal,
     current_xp:    newTotal - floor,

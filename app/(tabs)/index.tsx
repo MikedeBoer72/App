@@ -28,8 +28,7 @@ import { BadHabitItem } from '@/components/BadHabitItem';
 import { LevelCircle } from '@/components/LevelCircle';
 import { StreakDisplay } from '@/components/StreakDisplay';
 import { TaskItem } from '@/components/TaskItem';
-import { XPBar } from '@/components/XPBar';
-import { DAILY_TASK_XP_CAP, getXpProgress, xpValuePerTask } from '@/lib/xp';
+import { DAILY_TASK_XP_CAP, getXpProgress } from '@/lib/xp';
 import type { BadHabit, Task } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -58,17 +57,13 @@ export default function Dashboard() {
     [profile?.total_xp],
   );
 
-  // "X XP left today" = the realistic amount the user can still
-  // earn from today's tasks. min of:
-  //   (a) the incomplete tasks each at their current xp_value, and
-  //   (b) what's left in the 300/day cap.
-  const xpLeftToday = useMemo(() => {
+  // Net XP earned today = task XP earned − bad-habit XP lost.
+  // Negative when bad habits outweigh tasks (e.g. -200/300 if the
+  // user has only done a bad habit so far). Shown under the streak.
+  const netXpToday = useMemo(() => {
     if (!profile) return 0;
-    const incomplete = tasks.filter((t) => !t.is_completed).length;
-    const valuePer = xpValuePerTask(tasks.length);
-    const capRemaining = Math.max(0, DAILY_TASK_XP_CAP - profile.daily_task_xp_earned);
-    return Math.min(incomplete * valuePer, capRemaining);
-  }, [profile, tasks]);
+    return profile.daily_task_xp_earned - profile.daily_bad_habit_xp_lost;
+  }, [profile?.daily_task_xp_earned, profile?.daily_bad_habit_xp_lost]);
 
   // Floating "+XP" toasts. Pushed by onToggleTask; each renders
   // absolutely over the level circle and removes itself after 1.6s.
@@ -197,12 +192,17 @@ export default function Dashboard() {
 
           <Text style={[styles.brand, { color: theme.colors.primary, fontFamily: theme.fonts.heavy }]}>YourLevel</Text>
 
-          <StreakDisplay
-            streak={profile.day_streak}
-            secondChanceActive={profile.second_chance_active}
-            color={theme.colors.primary}
-            warnColor={theme.colors.danger}
-          />
+          <View style={styles.headerRight}>
+            <StreakDisplay
+              streak={profile.day_streak}
+              secondChanceActive={profile.second_chance_active}
+              color={theme.colors.primary}
+              warnColor={theme.colors.danger}
+            />
+            <Text style={[styles.todayChip, { color: theme.colors.secondary }]}>
+              {netXpToday}/{DAILY_TASK_XP_CAP} XP today
+            </Text>
+          </View>
         </View>
 
         {/* Streak-at-risk hint when a bad habit has been logged today.
@@ -231,20 +231,6 @@ export default function Dashboard() {
             {progress.currentXp} / {progress.xpToNextLevel} XP
           </Text>
 
-          {/* Daily task-XP cap — shows how much more XP today's tasks
-              can still earn. Distinct from the level progress above. */}
-          <View style={styles.dailyCap}>
-            <XPBar
-              currentXp={profile.daily_task_xp_earned}
-              xpToNextLevel={DAILY_TASK_XP_CAP}
-              trackColor={theme.colors.muted}
-              progressColor={theme.colors.accent}
-              height={6}
-            />
-            <Text style={[styles.dailyCapLabel, { color: theme.colors.secondary, fontFamily: theme.fonts.bold }]}>
-              {xpLeftToday} XP left today
-            </Text>
-          </View>
 
           {/* Floating XP toasts, stacked. */}
           <View pointerEvents="none" style={styles.xpToastLayer}>
@@ -477,8 +463,8 @@ const styles = StyleSheet.create({
   atRisk:         { fontSize: 12, fontWeight: '700', letterSpacing: 1, textAlign: 'center', textTransform: 'uppercase' },
   circleWrap:     { alignItems: 'center', gap: 12, marginVertical: 8 },
   xpRead:         { fontSize: 13, letterSpacing: 0.5 },
-  dailyCap:       { width: '70%', alignItems: 'center', gap: 6, marginTop: 4 },
-  dailyCapLabel:  { fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
+  headerRight:    { alignItems: 'flex-end', gap: 2 },
+  todayChip:      { fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
   section:        { gap: 10 },
   sectionHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle:   { fontSize: 20, fontWeight: '800', letterSpacing: 0.3 },

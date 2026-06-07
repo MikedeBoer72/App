@@ -273,10 +273,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
     // tasks array, so deleting+re-adding completed tasks can't grind
     // past the 300/day limit.
     const award = clampDailyTaskXp(task.xp_value, profile.daily_task_xp_earned);
+    // Lock the *awarded* amount into xp_value so uncomplete refunds
+    // exactly what was given. Without this, a cap-clamped task would
+    // refund its full displayed value, costing the user XP they
+    // never received.
     const completed: Task = {
       ...task,
       is_completed: true,
       completed_at: new Date().toISOString(),
+      xp_value:     award,
     };
     const nextTasks = tasks.map((t) => (t.id === taskId ? completed : t));
 
@@ -303,7 +308,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     try {
       await Promise.all([
         supabase.from('tasks')
-          .update({ is_completed: true, completed_at: completed.completed_at })
+          .update({
+            is_completed: true,
+            completed_at: completed.completed_at,
+            xp_value:     award,
+          })
           .eq('id', taskId),
         award > 0 ? persistProfileScore(profile.id, nextProfile) : Promise.resolve(),
       ]);
@@ -321,21 +330,43 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const task = tasks.find((t) => t.id === taskId);
     if (!task || !task.is_completed) return;
 
-    // Mark not-complete and re-stamp the dynamic XP value so it
-    // rejoins the incomplete pool at the current floor(300 / count).
-    // We do NOT refund earned XP — keeps the cap counter monotonic.
+    // Refund exactly what was awarded. completeTask wrote the
+    // post-clamp award into xp_value so this undoes the prior
+    // completion symmetrically. allowLevelDown so a level-up
+    // triggered by the original completion can be reversed too.
+    const refund = task.xp_value;
+    const xp = applyXpDelta({
+      total_xp:        profile.total_xp,
+      level:           profile.level,
+      deltaXp:         -refund,
+      allowLevelDown:  true,
+    });
+    const newCounter = Math.max(0, profile.daily_task_xp_earned - refund);
+
+    // After refund, the task rejoins the incomplete pool at the
+    // current dynamic value.
     const xpValue = xpValuePerTask(tasks.length);
-    const next = tasks.map((t) =>
+    const nextTasks = tasks.map((t) =>
       t.id === taskId
         ? { ...t, is_completed: false, completed_at: null, xp_value: xpValue }
         : t,
     );
-    set({ tasks: next });
+    const nextProfile: Profile = {
+      ...profile,
+      total_xp:              xp.total_xp,
+      current_xp:            xp.current_xp,
+      level:                 xp.level,
+      daily_task_xp_earned:  newCounter,
+    };
+    set({ tasks: nextTasks, profile: nextProfile });
 
     try {
-      await supabase.from('tasks')
-        .update({ is_completed: false, completed_at: null, xp_value: xpValue })
-        .eq('id', taskId);
+      await Promise.all([
+        supabase.from('tasks')
+          .update({ is_completed: false, completed_at: null, xp_value: xpValue })
+          .eq('id', taskId),
+        persistProfileScore(profile.id, nextProfile),
+      ]);
     } catch (err) {
       console.warn('[useAppStore] uncompleteTask failed', err);
       await get().loadForUser(profile.id);
@@ -478,21 +509,47 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   async uncompleteBadHabit(habitId) {
-    // No XP refund (gaming defense). Streak isn't restored either,
-    // but since the streak transition only fires at daily reset and
-    // reset checks the current (post-undo) state, undoing all bad
-    // habits today before reset DOES restore tomorrow's +1.
     const { profile, badHabits } = get();
     if (!profile) return;
+    const habit = badHabits.find((h) => h.id === habitId);
+    if (!habit || !habit.is_done) return;
+
+    const normalized = habit.name.trim().toLowerCase();
+    const wasPenalized = profile.bad_habits_penalized_today.includes(normalized);
+
+    let nextProfile: Profile = profile;
+    if (wasPenalized) {
+      // Refund the penalty + remove the name from the penalized list
+      // so re-completing this name later applies the penalty again.
+      const xp = applyXpDelta({
+        total_xp: profile.total_xp,
+        level:    profile.level,
+        deltaXp:  habit.xp_penalty,
+      });
+      nextProfile = {
+        ...profile,
+        total_xp:                   xp.total_xp,
+        current_xp:                 xp.current_xp,
+        level:                      xp.level,
+        daily_bad_habit_xp_lost:    Math.max(0, profile.daily_bad_habit_xp_lost - habit.xp_penalty),
+        bad_habits_penalized_today: profile.bad_habits_penalized_today.filter((n) => n !== normalized),
+      };
+    }
+
     set({
       badHabits: badHabits.map((h) =>
         h.id === habitId ? { ...h, is_done: false, done_at: null } : h,
       ),
+      profile: nextProfile,
     });
+
     try {
-      await supabase.from('bad_habits')
-        .update({ is_done: false, done_at: null })
-        .eq('id', habitId);
+      await Promise.all([
+        supabase.from('bad_habits')
+          .update({ is_done: false, done_at: null })
+          .eq('id', habitId),
+        wasPenalized ? persistProfileScore(profile.id, nextProfile) : Promise.resolve(),
+      ]);
     } catch (err) {
       console.warn('[useAppStore] uncompleteBadHabit failed', err);
       await get().loadForUser(profile.id);
