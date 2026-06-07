@@ -12,15 +12,6 @@ import { LEVEL_TIERS, XP_BANDS } from '@/constants/levels';
 /** Max XP a user can earn from completing tasks in one day. */
 export const DAILY_TASK_XP_CAP = 300;
 
-/** XP awarded for one of the first 3 tasks of the day. */
-export const PRIMARY_TASK_XP = 100;
-
-/** XP awarded for tasks 4+ of the day. */
-export const EXTRA_TASK_XP = 50;
-
-/** First N tasks of the day are "primary" and worth more. */
-export const PRIMARY_TASK_LIMIT = 3;
-
 /** Flat XP penalty when a bad habit is marked done. */
 export const BAD_HABIT_PENALTY = 200;
 
@@ -98,14 +89,21 @@ export function getLevelName(level: number): string {
 // Per-task helpers (used at task creation + completion time)
 // ---------------------------------------------------------------------------
 
-/** Is this task a primary one given how many tasks are already on today's list? */
-export function isPrimaryTask(currentTaskCountToday: number): boolean {
-  return currentTaskCountToday < PRIMARY_TASK_LIMIT;
-}
-
-/** XP value to stamp onto a brand-new task at creation time. */
-export function xpValueForNewTask(currentTaskCountToday: number): number {
-  return isPrimaryTask(currentTaskCountToday) ? PRIMARY_TASK_XP : EXTRA_TASK_XP;
+/**
+ * XP value of one task given how many tasks the user has today.
+ * The 300/day cap is distributed evenly: 1 task = 300 XP, 2 = 150,
+ * 3 = 100, 4 = 75, 6 = 50, etc. Rounded down so the cap is never
+ * exceeded by accidental over-distribution; the daily counter
+ * still hard-caps anyway.
+ *
+ * Completed tasks keep the value they had at completion time
+ * (locked in via `tasks.xp_value`); this function is what stamps
+ * the live value onto incomplete tasks whenever the day's list
+ * changes.
+ */
+export function xpValuePerTask(taskCountToday: number): number {
+  if (taskCountToday <= 0) return 0;
+  return Math.floor(DAILY_TASK_XP_CAP / taskCountToday);
 }
 
 /**

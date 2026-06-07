@@ -25,7 +25,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PRIMARY_TASK_LIMIT } from '@/lib/xp';
+import { xpValuePerTask } from '@/lib/xp';
 import { supabase } from '@/lib/supabase';
 import type { TaskHistoryEntry } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
@@ -77,8 +77,9 @@ export default function AddTasksScreen() {
       .slice(0, 10);
   }, [history, query]);
 
-  // Show the warning when the NEXT added task will be an extra.
-  const nextWillBeExtra = tasks.length >= PRIMARY_TASK_LIMIT;
+  // Live preview of what each task will be worth AFTER adding one
+  // more. The 300/day cap is split evenly across all tasks today.
+  const xpPerTaskAfterAdd = xpValuePerTask(tasks.length + 1);
 
   // The query as a candidate row, so "type and tap Add" feels the
   // same as "tap a suggestion".
@@ -186,11 +187,9 @@ export default function AddTasksScreen() {
         </Pressable>
       </View>
 
-      {nextWillBeExtra ? (
-        <Text style={[styles.warn, { color: theme.colors.secondary }]}>
-          Extra tasks earn 50 XP instead of 100 XP.
-        </Text>
-      ) : null}
+      <Text style={[styles.warn, { color: theme.colors.secondary }]}>
+        Adding makes each task worth {xpPerTaskAfterAdd} XP (300 / {tasks.length + 1} tasks today).
+      </Text>
 
       {/* Suggestions OR recent chips */}
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">

@@ -35,9 +35,9 @@ import {
   BAD_HABIT_PENALTY,
   clampDailyTaskXp,
   dailyTaskXpAwarded,
+  DAILY_TASK_XP_CAP,
   getLevelName,
-  isPrimaryTask,
-  xpValueForNewTask,
+  xpValuePerTask,
 } from '@/lib/xp';
 
 // ---------------------------------------------------------------------------
@@ -217,23 +217,44 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!trimmed) return null;
 
     const today = currentDayFor(new Date(), profile.day_start_time);
-    const count = get().tasks.length;
+    // The 300/day cap is distributed evenly across today's tasks.
+    // After this insert there'll be currentCount + 1 tasks, so each
+    // incomplete task is worth floor(300 / newTotal).
+    const newTotal = get().tasks.length + 1;
+    const xpValue = xpValuePerTask(newTotal);
 
     try {
       const { data, error } = await supabase
         .from('tasks')
         .insert({
-          user_id:     profile.id,
-          name:        trimmed,
-          is_primary:  isPrimaryTask(count),
-          xp_value:    xpValueForNewTask(count),
-          date:        today,
+          user_id:    profile.id,
+          name:       trimmed,
+          is_primary: true,
+          xp_value:   xpValue,
+          date:       today,
         })
         .select()
         .single<Task>();
       if (error || !data) throw error ?? new Error('insert failed');
 
-      set({ tasks: [...get().tasks, data] });
+      // Re-stamp every *incomplete* task with the new shared value so
+      // the displayed XP per task stays in sync. Completed tasks keep
+      // the value they had at completion (locked).
+      await supabase
+        .from('tasks')
+        .update({ xp_value: xpValue })
+        .eq('user_id',     profile.id)
+        .eq('date',        today)
+        .eq('is_completed', false);
+
+      set({
+        tasks: [
+          ...get().tasks.map((t) =>
+            t.is_completed ? t : { ...t, xp_value: xpValue },
+          ),
+          data,
+        ],
+      });
       void bumpTaskHistory(profile.id, trimmed, 'task');
       return data;
     } catch (err) {
@@ -300,17 +321,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const task = tasks.find((t) => t.id === taskId);
     if (!task || !task.is_completed) return;
 
-    // Local: just mark not-complete. We do NOT refund XP — keeps the
-    // store rules simple and prevents users from gaming the daily cap
-    // by toggle-spamming.
+    // Mark not-complete and re-stamp the dynamic XP value so it
+    // rejoins the incomplete pool at the current floor(300 / count).
+    // We do NOT refund earned XP — keeps the cap counter monotonic.
+    const xpValue = xpValuePerTask(tasks.length);
     const next = tasks.map((t) =>
-      t.id === taskId ? { ...t, is_completed: false, completed_at: null } : t,
+      t.id === taskId
+        ? { ...t, is_completed: false, completed_at: null, xp_value: xpValue }
+        : t,
     );
     set({ tasks: next });
 
     try {
       await supabase.from('tasks')
-        .update({ is_completed: false, completed_at: null })
+        .update({ is_completed: false, completed_at: null, xp_value: xpValue })
         .eq('id', taskId);
     } catch (err) {
       console.warn('[useAppStore] uncompleteTask failed', err);
@@ -336,9 +360,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
   async deleteTask(taskId) {
     const { profile, tasks } = get();
     if (!profile) return;
-    set({ tasks: tasks.filter((t) => t.id !== taskId) });
+
+    // One fewer task means the remaining incomplete tasks each get
+    // a bigger slice of the 300/day cap. Re-stamp them.
+    const remaining = tasks.filter((t) => t.id !== taskId);
+    const xpValue = xpValuePerTask(remaining.length);
+    const next = remaining.map((t) =>
+      t.is_completed ? t : { ...t, xp_value: xpValue },
+    );
+    set({ tasks: next });
+
+    const today = currentDayFor(new Date(), profile.day_start_time);
     try {
       await supabase.from('tasks').delete().eq('id', taskId);
+      if (remaining.length > 0) {
+        await supabase
+          .from('tasks')
+          .update({ xp_value: xpValue })
+          .eq('user_id',     profile.id)
+          .eq('date',        today)
+          .eq('is_completed', false);
+      }
     } catch (err) {
       console.warn('[useAppStore] deleteTask failed', err);
       await get().loadForUser(profile.id);
