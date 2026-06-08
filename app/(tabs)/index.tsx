@@ -29,6 +29,7 @@ import {
 } from 'react-native-draggable-flatlist';
 
 import { BadHabitItem } from '@/components/BadHabitItem';
+import { DecorationLayer } from '@/components/DecorationLayer';
 import { LevelCircle } from '@/components/LevelCircle';
 import { StreakDisplay } from '@/components/StreakDisplay';
 import { TaskItem } from '@/components/TaskItem';
@@ -184,6 +185,14 @@ export default function Dashboard() {
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.background }]}>
+      {/* Background decoration sits behind the scroll content; pointer
+          events disabled in DecorationLayer so touches pass through. */}
+      <DecorationLayer
+        id={profile.selected_decoration ?? 'none'}
+        accentColor={theme.colors.accent}
+        mutedColor={theme.colors.muted}
+        primaryColor={theme.colors.primary}
+      />
       <NestableScrollContainer contentContainerStyle={styles.scroll}>
         {/* Header */}
         <View style={styles.header}>

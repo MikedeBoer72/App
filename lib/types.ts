@@ -4,6 +4,7 @@
 // place.
 
 import type { ThemeId } from '@/constants/themes';
+import type { DecorationId } from '@/constants/decorations';
 
 export interface Profile {
   id:                              string;
@@ -21,6 +22,7 @@ export interface Profile {
   day_start_changes_this_month:    number;
   last_day_start_change:           string | null;
   selected_font:                   ThemeId;
+  selected_decoration:             DecorationId;
   onboarding_completed:            boolean;
   created_at:                      string;
   last_active_date:                string;          // 'YYYY-MM-DD'

@@ -27,6 +27,7 @@ import {
   type Theme,
   type ThemeId,
 } from '@/constants/themes';
+import type { DecorationId } from '@/constants/decorations';
 import { currentDayFor, runDailyResetIfNeeded } from '@/lib/daily-reset';
 import { supabase } from '@/lib/supabase';
 import type { BadHabit, Profile, Task } from '@/lib/types';
@@ -88,6 +89,7 @@ interface AppStore {
 
   // ---- misc ----
   setTheme:            (themeId: ThemeId) => Promise<void>;
+  setDecoration:       (decorationId: DecorationId) => Promise<void>;
   clearLevelUpEvent:   () => void;
 }
 
@@ -666,6 +668,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
       await supabase.from('profiles').update({ selected_font: themeId }).eq('id', profile.id);
     } catch (err) {
       console.warn('[useAppStore] setTheme failed', err);
+      await get().loadForUser(profile.id);
+    }
+  },
+
+  async setDecoration(decorationId) {
+    const { profile } = get();
+    if (!profile) return;
+    const nextProfile: Profile = { ...profile, selected_decoration: decorationId };
+    set({ profile: nextProfile });
+    try {
+      await supabase.from('profiles').update({ selected_decoration: decorationId }).eq('id', profile.id);
+    } catch (err) {
+      console.warn('[useAppStore] setDecoration failed', err);
       await get().loadForUser(profile.id);
     }
   },
