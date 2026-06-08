@@ -1,14 +1,14 @@
 // Unlockable background decoration layers. Same gating model as
 // themes: level-gated + (mostly) Pro-gated, since you need to be
-// past the level-5 paywall to be at level 5+ anyway. The first
-// two are free as a sampler.
+// past the level-5 paywall to be at level 5+ anyway. Only "None"
+// is free; the rest are Pro and spaced out across the level range
+// so each is a distinct "I unlocked something" moment.
 
 export type DecorationId =
   | 'none'
   | 'dots'
   | 'grid'
   | 'circles'
-  | 'constellation'
   | 'magic-ring';
 
 export interface Decoration {
@@ -30,35 +30,28 @@ export const DECORATIONS: readonly Decoration[] = [
   {
     id:          'dots',
     name:        'Dots',
-    unlockLevel: 3,
-    isPaid:      false,
+    unlockLevel: 25,
+    isPaid:      true,
     description: 'Subtle polka dots.',
   },
   {
     id:          'grid',
     name:        'Grid',
-    unlockLevel: 8,
+    unlockLevel: 75,
     isPaid:      true,
     description: 'Faint graph-paper lines.',
   },
   {
     id:          'circles',
     name:        'Orbs',
-    unlockLevel: 15,
+    unlockLevel: 125,
     isPaid:      true,
     description: 'Soft glowing orbs scattered behind.',
   },
   {
-    id:          'constellation',
-    name:        'Constellation',
-    unlockLevel: 25,
-    isPaid:      true,
-    description: 'Stars connected by ley lines.',
-  },
-  {
     id:          'magic-ring',
     name:        'Magic Ring',
-    unlockLevel: 60,
+    unlockLevel: 225,
     isPaid:      true,
     description: 'A glowing rune circle behind your level.',
   },
