@@ -16,6 +16,7 @@ type Row = {
 
 const ROWS: readonly Row[] = [
   { icon: 'sparkles-outline',   label: 'Subscription',                    href: '/settings/subscription' },
+  { icon: 'stats-chart-outline', label: 'Stats',                          href: '/settings/stats' },
   { icon: 'information-circle-outline', label: 'About',                   href: '/settings/about' },
   { icon: 'color-palette-outline', label: 'Fonts',                        href: '/settings/fonts' },
   { icon: 'shapes-outline',     label: 'Decorations',                     href: '/settings/decorations' },
