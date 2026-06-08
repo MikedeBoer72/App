@@ -11,6 +11,7 @@
 // Must be imported once at app entry for gesture-handler to wire up
 // the native bridge. Required by react-native-draggable-flatlist.
 import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -183,10 +184,12 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="light" />
-      {body}
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        {body}
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
