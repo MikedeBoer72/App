@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BAD_HABIT_PENALTY } from '@/lib/xp';
+import { BAD_HABIT_PENALTY, MAX_ITEMS_PER_DAY } from '@/lib/xp';
 import { supabase } from '@/lib/supabase';
 import type { TaskHistoryEntry } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
@@ -30,7 +30,9 @@ export default function AddBadHabitsScreen() {
   const router = useRouter();
   const theme = useAppStore((s) => s.theme);
   const profile = useAppStore((s) => s.profile);
+  const badHabits = useAppStore((s) => s.badHabits);
   const addBadHabit = useAppStore((s) => s.addBadHabit);
+  const atMax = badHabits.length >= MAX_ITEMS_PER_DAY;
 
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [query, setQuery] = useState('');
@@ -129,8 +131,10 @@ export default function AddBadHabitsScreen() {
         <View style={styles.iconBtn} />
       </View>
 
-      <Text style={[styles.subtle, { color: theme.colors.secondary }]}>
-        {`Track what trips you up. Each one costs ${BAD_HABIT_PENALTY} XP and breaks your streak.`}
+      <Text style={[styles.subtle, { color: atMax ? theme.colors.danger : theme.colors.secondary }]}>
+        {atMax
+          ? `Daily limit reached (${MAX_ITEMS_PER_DAY} bad habits). Delete one to add another.`
+          : `Track what trips you up. Each one costs ${BAD_HABIT_PENALTY} XP and breaks your streak.`}
       </Text>
 
       {/* Input + Add */}
@@ -157,13 +161,13 @@ export default function AddBadHabitsScreen() {
         />
         <Pressable
           accessibilityRole="button"
-          disabled={!trimmed || busy}
+          disabled={!trimmed || busy || atMax}
           onPress={() => handleAdd(query)}
           style={({ pressed }) => [
             styles.addBtn,
             {
               backgroundColor: theme.colors.danger,
-              opacity: !trimmed ? 0.4 : pressed ? 0.7 : 1,
+              opacity: !trimmed || atMax ? 0.4 : pressed ? 0.7 : 1,
             },
           ]}
         >

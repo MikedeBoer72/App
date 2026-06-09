@@ -12,6 +12,12 @@ import { LEVEL_TIERS, XP_BANDS } from '@/constants/levels';
 /** Max XP a user can earn from completing tasks in one day. */
 export const DAILY_TASK_XP_CAP = 300;
 
+/** Hard cap on how many tasks (and separately, bad habits) the user
+ *  can have on today's list. Past this, addTask / addBadHabit refuse
+ *  and the Add screens show a "limit reached" hint. Keeps the
+ *  dashboard scannable and the per-task XP value meaningful. */
+export const MAX_ITEMS_PER_DAY = 10;
+
 /** Flat XP penalty when a bad habit is marked done. */
 export const BAD_HABIT_PENALTY = 200;
 

@@ -28,10 +28,10 @@ export default function DecorationsScreen() {
   const rows = useMemo(() => {
     return DECORATIONS.map((d) => {
       let status: Status;
-      if (d.id === currentId)                                          status = 'active';
-      else if (!__DEV__ && level < d.unlockLevel)                      status = 'locked';
-      else if (!__DEV__ && d.isPaid && !subscribed)                    status = 'needs-pro';
-      else                                                             status = 'available';
+      if (d.id === currentId)                  status = 'active';
+      else if (level < d.unlockLevel)          status = 'locked';
+      else if (d.isPaid && !subscribed)        status = 'needs-pro';
+      else                                     status = 'available';
       return { decoration: d, status };
     });
   }, [currentId, level, subscribed]);

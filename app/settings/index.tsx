@@ -58,13 +58,13 @@ export default function SettingsMenu() {
             ) : (
               <View style={[styles.avatar, { backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' }]}>
                 <Text style={[styles.avatarText, { color: theme.colors.background }]}>
-                  {(profile.username ?? '?').slice(0, 1).toUpperCase()}
+                  {(profile.username ?? 'Guest').slice(0, 1).toUpperCase()}
                 </Text>
               </View>
             )}
             <View style={styles.userMeta}>
               <Text style={[styles.userName, { color: theme.colors.primary }]} numberOfLines={1}>
-                {profile.username ?? 'Anonymous'}
+                {profile.username ?? 'Guest'}
               </Text>
               <Text style={[styles.userSub, { color: theme.colors.secondary }]}>
                 Level {profile.level} · {profile.is_subscribed ? 'Pro' : 'Free'}

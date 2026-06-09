@@ -214,7 +214,7 @@ export default function Dashboard() {
                 ]}
               >
                 <Text style={[styles.headerAvatarLetter, { color: theme.colors.background, fontFamily: theme.fonts.heavy }]}>
-                  {(profile.username ?? '?').slice(0, 1).toUpperCase()}
+                  {(profile.username ?? 'Guest').slice(0, 1).toUpperCase()}
                 </Text>
               </View>
             )}

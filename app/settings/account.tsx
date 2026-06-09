@@ -70,8 +70,17 @@ export default function AccountScreen() {
       quality:       0.6,
     });
     if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    // Bail before the upload if the picked image is huge — quality:0.6
+    // already compresses, but a giant input photo briefly costs
+    // memory and uploads slowly on bad connections.
+    const MAX_BYTES = 5 * 1024 * 1024;
+    if (asset.fileSize != null && asset.fileSize > MAX_BYTES) {
+      Alert.alert('Photo too large', 'Please pick a photo smaller than 5 MB.');
+      return;
+    }
     setUploading(true);
-    const ok = await uploadAvatar(result.assets[0].uri);
+    const ok = await uploadAvatar(asset.uri);
     setUploading(false);
     if (!ok) Alert.alert('Upload failed', 'Could not save your picture. Please try again.');
   }
@@ -112,7 +121,7 @@ export default function AccountScreen() {
     }
   }
 
-  const initial = (profile?.username ?? '?').trim().slice(0, 1).toUpperCase();
+  const initial = (profile?.username ?? 'Guest').trim().slice(0, 1).toUpperCase();
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.background }]}>

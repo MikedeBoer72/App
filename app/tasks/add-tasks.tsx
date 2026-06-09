@@ -25,7 +25,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { xpValuePerTask } from '@/lib/xp';
+import { MAX_ITEMS_PER_DAY, xpValuePerTask } from '@/lib/xp';
 import { supabase } from '@/lib/supabase';
 import type { TaskHistoryEntry } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
@@ -80,6 +80,7 @@ export default function AddTasksScreen() {
   // Live preview of what each task will be worth AFTER adding one
   // more. The 300/day cap is split evenly across all tasks today.
   const xpPerTaskAfterAdd = xpValuePerTask(tasks.length + 1);
+  const atMax = tasks.length >= MAX_ITEMS_PER_DAY;
 
   // The query as a candidate row, so "type and tap Add" feels the
   // same as "tap a suggestion".
@@ -169,13 +170,13 @@ export default function AddTasksScreen() {
         />
         <Pressable
           accessibilityRole="button"
-          disabled={!trimmed || busy}
+          disabled={!trimmed || busy || atMax}
           onPress={() => handleAdd(query)}
           style={({ pressed }) => [
             styles.addBtn,
             {
               backgroundColor: theme.colors.accent,
-              opacity: !trimmed ? 0.4 : pressed ? 0.7 : 1,
+              opacity: !trimmed || atMax ? 0.4 : pressed ? 0.7 : 1,
             },
           ]}
         >
@@ -187,8 +188,10 @@ export default function AddTasksScreen() {
         </Pressable>
       </View>
 
-      <Text style={[styles.warn, { color: theme.colors.secondary }]}>
-        With {tasks.length + 1} task{tasks.length + 1 === 1 ? '' : 's'} today each is worth {xpPerTaskAfterAdd} XP.
+      <Text style={[styles.warn, { color: atMax ? theme.colors.danger : theme.colors.secondary }]}>
+        {atMax
+          ? `Daily limit reached (${MAX_ITEMS_PER_DAY} tasks). Delete one to add another.`
+          : `With ${tasks.length + 1} task${tasks.length + 1 === 1 ? '' : 's'} today each is worth ${xpPerTaskAfterAdd} XP.`}
       </Text>
 
       {/* Suggestions OR recent chips */}

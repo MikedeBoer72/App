@@ -38,6 +38,7 @@ import {
   dailyTaskXpAwarded,
   DAILY_TASK_XP_CAP,
   getLevelName,
+  MAX_ITEMS_PER_DAY,
   xpValuePerTask,
 } from '@/lib/xp';
 
@@ -227,6 +228,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!profile) return null;
     const trimmed = name.trim();
     if (!trimmed) return null;
+    if (get().tasks.length >= MAX_ITEMS_PER_DAY) return null;
 
     const today = currentDayFor(new Date(), profile.day_start_time);
     // The 300/day cap is distributed evenly across today's tasks.
@@ -471,6 +473,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!profile) return null;
     const trimmed = name.trim();
     if (!trimmed) return null;
+    if (get().badHabits.length >= MAX_ITEMS_PER_DAY) return null;
 
     const today = currentDayFor(new Date(), profile.day_start_time);
     const nextOrderIndex = Math.max(0, ...get().badHabits.map((h) => h.order_index)) + 1;
