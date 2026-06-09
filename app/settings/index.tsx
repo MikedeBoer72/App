@@ -2,7 +2,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppStore } from '@/store/useAppStore';
@@ -53,16 +53,15 @@ export default function SettingsMenu() {
         {/* User card */}
         {profile ? (
           <View style={[styles.userCard, { backgroundColor: theme.colors.surface }]}>
-            <View
-              style={[
-                styles.avatar,
-                { backgroundColor: theme.colors.accent },
-              ]}
-            >
-              <Text style={[styles.avatarText, { color: theme.colors.background }]}>
-                {(profile.username ?? '?').slice(0, 1).toUpperCase()}
-              </Text>
-            </View>
+            {profile.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' }]}>
+                <Text style={[styles.avatarText, { color: theme.colors.background }]}>
+                  {(profile.username ?? '?').slice(0, 1).toUpperCase()}
+                </Text>
+              </View>
+            )}
             <View style={styles.userMeta}>
               <Text style={[styles.userName, { color: theme.colors.primary }]} numberOfLines={1}>
                 {profile.username ?? 'Anonymous'}

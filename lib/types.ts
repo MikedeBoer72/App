@@ -9,6 +9,7 @@ import type { DecorationId } from '@/constants/decorations';
 export interface Profile {
   id:                              string;
   username:                        string | null;
+  avatar_url:                      string | null;
   level:                           number;
   total_xp:                        number;
   current_xp:                      number;

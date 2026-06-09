@@ -90,6 +90,8 @@ interface AppStore {
   // ---- misc ----
   setTheme:            (themeId: ThemeId) => Promise<void>;
   setDecoration:       (decorationId: DecorationId) => Promise<void>;
+  setUsername:         (name: string) => Promise<void>;
+  uploadAvatar:        (localUri: string) => Promise<boolean>;
   clearLevelUpEvent:   () => void;
 }
 
@@ -682,6 +684,60 @@ export const useAppStore = create<AppStore>((set, get) => ({
     } catch (err) {
       console.warn('[useAppStore] setDecoration failed', err);
       await get().loadForUser(profile.id);
+    }
+  },
+
+  async setUsername(name) {
+    const { profile } = get();
+    if (!profile) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const nextProfile: Profile = { ...profile, username: trimmed };
+    set({ profile: nextProfile });
+    try {
+      await supabase.from('profiles').update({ username: trimmed }).eq('id', profile.id);
+    } catch (err) {
+      console.warn('[useAppStore] setUsername failed', err);
+      await get().loadForUser(profile.id);
+    }
+  },
+
+  async uploadAvatar(localUri) {
+    const { profile } = get();
+    if (!profile) return false;
+    try {
+      // Read the picked image as an ArrayBuffer and push to storage.
+      // Path is namespaced under the user id so the RLS policies
+      // (which gate by storage.foldername(name)[1] === auth.uid())
+      // accept the upload.
+      const response = await fetch(localUri);
+      const buffer = await response.arrayBuffer();
+      const path = `${profile.id}/avatar.jpg`;
+
+      const { error: upErr } = await supabase
+        .storage
+        .from('avatars')
+        .upload(path, buffer, { contentType: 'image/jpeg', upsert: true });
+      if (upErr) throw upErr;
+
+      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path);
+      // Cache-bust so the freshly-uploaded image overrides the old
+      // cached one immediately on the device.
+      const url = `${pub.publicUrl}?t=${Date.now()}`;
+
+      const nextProfile: Profile = { ...profile, avatar_url: url };
+      set({ profile: nextProfile });
+
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .update({ avatar_url: url })
+        .eq('id', profile.id);
+      if (dbErr) throw dbErr;
+
+      return true;
+    } catch (err) {
+      console.warn('[useAppStore] uploadAvatar failed', err);
+      return false;
     }
   },
 

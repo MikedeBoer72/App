@@ -28,6 +28,12 @@
         {
           "color": "#4A90E2"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow YourLevel to access your photos to set your profile picture."
+        }
       ]
     ],
     "experiments": {
