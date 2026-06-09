@@ -15,6 +15,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -202,7 +203,21 @@ export default function Dashboard() {
             hitSlop={10}
             style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.5 : 1 }]}
           >
-            <Ionicons name="menu" size={26} color={theme.colors.primary} />
+            {profile.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={styles.headerAvatar} />
+            ) : (
+              <View
+                style={[
+                  styles.headerAvatar,
+                  styles.headerAvatarFallback,
+                  { backgroundColor: theme.colors.accent },
+                ]}
+              >
+                <Text style={[styles.headerAvatarLetter, { color: theme.colors.background, fontFamily: theme.fonts.heavy }]}>
+                  {(profile.username ?? '?').slice(0, 1).toUpperCase()}
+                </Text>
+              </View>
+            )}
           </Pressable>
 
           {/* Absolute-center the brand so it stays put regardless of
@@ -500,6 +515,9 @@ const styles = StyleSheet.create({
   scroll:         { paddingHorizontal: 20, paddingBottom: 32, gap: 20 },
   header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   iconBtn:        { padding: 4 },
+  headerAvatar:        { width: 32, height: 32, borderRadius: 16 },
+  headerAvatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  headerAvatarLetter:  { fontSize: 14, fontWeight: '800', includeFontPadding: false },
   brand:          { fontSize: 18, fontWeight: '800', letterSpacing: 0.5 },
   atRisk:         { fontSize: 12, fontWeight: '700', letterSpacing: 1, textAlign: 'center', textTransform: 'uppercase' },
   circleWrap:     { alignItems: 'center', gap: 12, marginVertical: 8 },
