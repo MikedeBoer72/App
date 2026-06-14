@@ -46,6 +46,14 @@ export default function StatsScreen() {
     if (!uid) return;
     (async () => {
       try {
+        // Match the heat-map window: only include task_history
+        // entries that have been used within the last HEATMAP_DAYS
+        // days, so the rankings reflect what the user is *currently*
+        // working on, not lifetime favorites.
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - HEATMAP_DAYS);
+        const cutoffIso = cutoff.toISOString();
+
         const [logsRes, historyRes] = await Promise.all([
           supabase.from('daily_logs')
             .select('*')
@@ -54,6 +62,7 @@ export default function StatsScreen() {
           supabase.from('task_history')
             .select('*')
             .eq('user_id', uid)
+            .gte('last_used', cutoffIso)
             .order('use_count', { ascending: false })
             .limit(50),
         ]);
@@ -175,7 +184,7 @@ export default function StatsScreen() {
           </View>
 
           {/* Top tasks */}
-          <SectionHeader text="Top tasks" color={theme.colors.secondary} fontFamily={theme.fonts.bold} />
+          <SectionHeader text="Top tasks · last 6 weeks" color={theme.colors.secondary} fontFamily={theme.fonts.bold} />
           <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
             {topTasks.length === 0 ? (
               <Text style={[styles.empty, { color: theme.colors.muted }]}>No tasks added yet.</Text>
@@ -191,7 +200,7 @@ export default function StatsScreen() {
           </View>
 
           {/* Top bad habits */}
-          <SectionHeader text="Top bad habits" color={theme.colors.secondary} fontFamily={theme.fonts.bold} />
+          <SectionHeader text="Top bad habits · last 6 weeks" color={theme.colors.secondary} fontFamily={theme.fonts.bold} />
           <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
             {topBadHabs.length === 0 ? (
               <Text style={[styles.empty, { color: theme.colors.muted }]}>None tracked yet.</Text>
