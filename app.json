@@ -10,7 +10,7 @@
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/icon.png",
-      "backgroundColor": "#0A0A0A",
+      "backgroundColor": "#0E0313",
       "resizeMode": "contain"
     },
     "ios": {
