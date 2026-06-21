@@ -159,14 +159,31 @@ export default function SubscriptionScreen() {
             <ActivityIndicator color={theme.colors.accent} />
           </View>
         ) : packages.length === 0 ? (
-          <View style={[styles.unavailable, { backgroundColor: theme.colors.surface }]}>
-            <Ionicons name="cloud-offline-outline" size={20} color={theme.colors.muted} />
-            <Text style={[styles.unavailableText, { color: theme.colors.secondary }]}>
-              {configured
-                ? 'No subscription products available yet. Set up the product in App Store Connect and offering in RevenueCat.'
-                : 'Subscriptions unavailable. RevenueCat is not configured for this build (Expo Go does not include native modules; this works in EAS builds).'}
-            </Text>
-          </View>
+          __DEV__ ? (
+            // Visual-only mock used in Expo Go so the App Store
+            // review screenshot shows the price and the call-to-
+            // action. Tap is intentionally inert; real builds use
+            // RevenueCat-loaded packages above this branch.
+            <View
+              style={[
+                styles.plan,
+                { backgroundColor: theme.colors.accent, opacity: 0.95 },
+              ]}
+            >
+              <Text style={[styles.planText, { color: theme.colors.background }]}>
+                Subscribe — $7.99 / monthly
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.unavailable, { backgroundColor: theme.colors.surface }]}>
+              <Ionicons name="cloud-offline-outline" size={20} color={theme.colors.muted} />
+              <Text style={[styles.unavailableText, { color: theme.colors.secondary }]}>
+                {configured
+                  ? 'No subscription products available yet. Set up the product in App Store Connect and offering in RevenueCat.'
+                  : 'Subscriptions unavailable. RevenueCat is not configured for this build (Expo Go does not include native modules; this works in EAS builds).'}
+              </Text>
+            </View>
+          )
         ) : (
           packages.map((pkg) => (
             <Pressable
