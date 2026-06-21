@@ -30,7 +30,7 @@ import { supabase } from '@/lib/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
 
-type Pending = 'google' | 'apple' | null;
+type Pending = 'google' | 'apple' | 'guest' | null;
 
 export default function LoginScreen() {
   const theme = getTheme(DEFAULT_THEME_ID);
@@ -90,6 +90,21 @@ export default function LoginScreen() {
       throw new Error('Missing tokens in OAuth redirect');
     } catch (err: unknown) {
       Alert.alert('Sign-in failed', describe(err));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  // Dev-only anonymous sign-in. Wrapped in __DEV__ so it's stripped
+  // out of production builds and only useful when running under
+  // Expo Go where real OAuth flows are flaky.
+  async function handleGuest() {
+    setPending('guest');
+    try {
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+    } catch (err: unknown) {
+      Alert.alert('Guest sign-in failed', describe(err));
     } finally {
       setPending(null);
     }
@@ -175,6 +190,34 @@ export default function LoginScreen() {
             )}
           </Pressable>
         ) : null}
+
+        {/* Dev-only escape hatch. __DEV__ strips this in production
+            builds (EAS Build profile=production), so the App Store
+            build never exposes anonymous sign-in. Useful when Expo
+            Go's OAuth redirect dance breaks. */}
+        {__DEV__ ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={pending !== null}
+            onPress={handleGuest}
+            style={({ pressed }) => [
+              styles.button,
+              styles.guestButton,
+              {
+                borderColor: theme.colors.muted,
+                opacity: pending !== null && pending !== 'guest' ? 0.4 : pressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            {pending === 'guest' ? (
+              <ActivityIndicator color={theme.colors.primary} />
+            ) : (
+              <Text style={[styles.buttonText, { color: theme.colors.primary }]}>
+                Continue as guest (dev)
+              </Text>
+            )}
+          </Pressable>
+        ) : null}
       </View>
 
       <Text style={[styles.fine, { color: theme.colors.muted }]}>
@@ -197,6 +240,7 @@ const styles = StyleSheet.create({
   actions:     { gap: 12 },
   button:      { height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   appleButton: { backgroundColor: '#000000', borderWidth: StyleSheet.hairlineWidth, borderColor: '#FFFFFF22' },
+  guestButton: { backgroundColor: 'transparent', borderWidth: 1 },
   buttonText:  { fontSize: 16, fontWeight: '600' },
   fine:        { fontSize: 12, textAlign: 'center' },
 });
