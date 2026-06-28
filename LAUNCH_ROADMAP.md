@@ -53,60 +53,60 @@ Living checklist from "now" to "live on the App Store." Tick boxes as you go.
 - [ ] Host on a public Notion page (or real domain)
 - [ ] Save the URL — needed in the App Store listing
 
-## ⚠️ NEXT SESSION — START HERE (build is failing on stale config)
+## ⚠️ NEXT SESSION — START HERE: rebuild to bundle the latest fixes
 
-Build attempts (3, and a rebuild) failed Apple processing with:
-  ITMS-90771: 'BGTaskSchedulerPermittedIdentifiers' must be set when
-  UIBackgroundModes contains 'processing'.
+The app NOW RUNS on TestFlight (the launch crash + the ITMS-90771 build
+failure are both fixed and confirmed). Since the last working build, we
+committed more changes that are NOT yet in a build:
+  - new YL icon (cleaned, full-bleed, alpha stripped) + matched splash
+  - first-run onboarding tutorial + name capture (fixes "Guest" name)
+  - Social Media screen -> "coming soon" (removed the Rick Roll links)
 
-Root cause + fix (ALREADY DONE in repo, commit 8f551dc):
-- app.json `UIBackgroundModes` was `["fetch","processing"]`. expo-background-fetch
-  uses the LEGACY iOS fetch API and never registers BGTask identifiers, so
-  'processing' was both unnecessary and the trigger for the error.
-- Fixed to `["fetch"]`. Verified no Expo config plugin re-adds 'processing'
-  and there is no committed ios/ folder. The committed app.json is correct.
-- The rebuild still failed because the local app.json on the PC was almost
-  certainly STALE (git pull didn't apply before `eas build`).
-
-### Do this, in order, next time:
+### Do this first, in order:
 1. `cd Documents\maxing-ai`
-2. `git status`  — if it lists local changes blocking a pull (e.g. .gitignore,
-   expo-env.d.ts, package-lock.json), run:
-       `git stash`        (parks local changes)
-       `git pull`
-       (the personal file "supabase saved info.txt" is untracked & safe; ignore)
-3. **VERIFY the fix is local** — open app.json and confirm:
-       "UIBackgroundModes": ["fetch"]      (NO "processing")
-   Or run:  `findstr UIBackgroundModes app.json`
+2. `git fetch origin`
+3. `git reset --hard origin/claude/initial-app-setup-YXQuq`
+   (forces local = remote; safe — the only local-only file is the
+   untracked "supabase saved info.txt", which reset preserves)
 4. `eas build --platform ios --profile production`   (build auto-increments)
-5. When done: `eas submit --platform ios --profile production` → pick newest build
-6. App Store Connect → TestFlight → build should now process WITHOUT "Failed".
-   (Encryption question is pre-answered via ITSAppUsesNonExemptEncryption=false.)
+5. `eas submit --platform ios --profile production`   → pick newest build
+6. TestFlight processes it (~10 min) → update on phone → verify:
+   - [ ] new icon on the home screen
+   - [ ] onboarding tutorial (only shows for NEW accounts — sign in with a
+         fresh Apple/Google acct to see it; your own acct already finished it)
+   - [ ] Social Media shows "coming soon", no Rick Roll
 
-## PHASE 5 — First EAS Build → TestFlight
+### Known things that are NOT bugs:
+- Subscription price shows €8,99 (not €7,99): Apple's $7.99 USD price TIER
+  maps to €8,99 in the EU (VAT + Apple's tier grid). The app correctly shows
+  the real localized price. To make it €7,99: App Store Connect → YourLevel →
+  Subscriptions → Pro Monthly → Subscription Prices → pick the tier that is
+  €7,99 for NL. Otherwise leave it.
+- Your own profile shows "Guest": you signed up before the name step existed.
+  Fix it in-app: Settings → Account → pencil icon → type your name.
 
-- [ ] `npm install -g eas-cli`
-- [ ] `eas login`
-- [ ] `eas build --platform ios --profile production`
-      (runs on Apple cloud, ~15 min; no Mac needed. Will prompt to
-      generate a distribution cert + provisioning profile — say yes.)
-- [ ] `eas submit --platform ios --profile production` (uploads to TestFlight)
-- [ ] Wait for TestFlight processing (~5–15 min), then it appears in the
-      TestFlight app on the phone
+## PHASE 5 — EAS Build → TestFlight  ✅ DONE (app runs on device)
 
-## PHASE 6 — Real-device testing on TestFlight
+- [x] eas-cli installed, `eas login`, project linked (`eas init`)
+- [x] First successful production build + submit to TestFlight
+- [x] Installed on phone; launch crash fixed (static EXPO_PUBLIC_ inlining)
+- [ ] Re-build with the latest icon/onboarding/social commits (steps above)
 
-- [ ] Install YourLevel via the TestFlight app
-- [ ] **Real Apple Sign In** works (host.exp.Exponent error is gone in a real build)
-- [ ] **Real Google Sign In** works (production scheme `yourlevel://`)
+## PHASE 6 — Real-device testing on TestFlight (after the rebuild)
+
+Confirmed working so far: app launches, real login, subscription screen
+shows real price, social "coming soon". Still to verify on the new build:
+- [x] App launches without crashing
+- [ ] **Real Apple Sign In** end-to-end sets a proper name (onboarding name step)
+- [ ] **Real Google Sign In**
 - [ ] **Real subscription purchase** with a sandbox tester account
       (Settings → App Store → sign in as sandbox tester when prompted)
 - [ ] Subscribe → `is_subscribed` flips → level gate past 5 unlocks → themes/decorations unlock
 - [ ] Restore Purchases works
 - [ ] **Overnight daily-reset test**: set day-start ~2 min ahead, leave app,
       confirm tasks/bad-habits wipe + streak logic next "day"
-- [ ] Background fetch + multi-day catch-up (skip the app a couple days)
 - [ ] Notifications fire at the bracketed times
+- [ ] Onboarding flow on a fresh account (tutorial + name + day-start)
 - [ ] Avatar upload, name edit, drag-reorder, stats all work on device
 
 ## PHASE 7 — App Store listing (assistant drafts copy)
