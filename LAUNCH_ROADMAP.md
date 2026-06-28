@@ -53,6 +53,36 @@ Living checklist from "now" to "live on the App Store." Tick boxes as you go.
 - [ ] Host on a public Notion page (or real domain)
 - [ ] Save the URL — needed in the App Store listing
 
+## ⚠️ NEXT SESSION — START HERE (build is failing on stale config)
+
+Build attempts (3, and a rebuild) failed Apple processing with:
+  ITMS-90771: 'BGTaskSchedulerPermittedIdentifiers' must be set when
+  UIBackgroundModes contains 'processing'.
+
+Root cause + fix (ALREADY DONE in repo, commit 8f551dc):
+- app.json `UIBackgroundModes` was `["fetch","processing"]`. expo-background-fetch
+  uses the LEGACY iOS fetch API and never registers BGTask identifiers, so
+  'processing' was both unnecessary and the trigger for the error.
+- Fixed to `["fetch"]`. Verified no Expo config plugin re-adds 'processing'
+  and there is no committed ios/ folder. The committed app.json is correct.
+- The rebuild still failed because the local app.json on the PC was almost
+  certainly STALE (git pull didn't apply before `eas build`).
+
+### Do this, in order, next time:
+1. `cd Documents\maxing-ai`
+2. `git status`  — if it lists local changes blocking a pull (e.g. .gitignore,
+   expo-env.d.ts, package-lock.json), run:
+       `git stash`        (parks local changes)
+       `git pull`
+       (the personal file "supabase saved info.txt" is untracked & safe; ignore)
+3. **VERIFY the fix is local** — open app.json and confirm:
+       "UIBackgroundModes": ["fetch"]      (NO "processing")
+   Or run:  `findstr UIBackgroundModes app.json`
+4. `eas build --platform ios --profile production`   (build auto-increments)
+5. When done: `eas submit --platform ios --profile production` → pick newest build
+6. App Store Connect → TestFlight → build should now process WITHOUT "Failed".
+   (Encryption question is pre-answered via ITSAppUsesNonExemptEncryption=false.)
+
 ## PHASE 5 — First EAS Build → TestFlight
 
 - [ ] `npm install -g eas-cli`
