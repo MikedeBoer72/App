@@ -1,43 +1,28 @@
-// Social Media screen.
+// Social Media screen — "coming soon" placeholder.
 //
-// Hardcoded link list + a few featured YouTube thumbnails. Replace
-// the URLs / video IDs below with the real ones before you submit.
+// Real handles / videos aren't live yet, so this shows the platforms
+// as a disabled list with a "coming soon" note rather than linking
+// anywhere. Swap to real links + a tappable list once the accounts
+// exist (the previous link/video structure is in git history).
 
 import { Ionicons } from '@expo/vector-icons';
-import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppStore } from '@/store/useAppStore';
 
-// TODO: replace placeholders before App Store submission.
-const LINKS: ReadonlyArray<{ icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap; label: string; url: string }> = [
-  { icon: 'logo-instagram', label: 'Instagram', url: 'https://instagram.com/yourlevel.app' },
-  { icon: 'logo-twitter',   label: 'X',         url: 'https://x.com/yourlevelapp' },
-  { icon: 'logo-tiktok',    label: 'TikTok',    url: 'https://tiktok.com/@yourlevel.app' },
-  { icon: 'logo-youtube',   label: 'YouTube',   url: 'https://youtube.com/@yourlevelapp' },
-];
-
-const VIDEOS: ReadonlyArray<{ id: string; title: string }> = [
-  { id: 'dQw4w9WgXcQ', title: 'Why YourLevel exists' },
-  { id: 'dQw4w9WgXcQ', title: 'Build a streak in 7 days' },
-  { id: 'dQw4w9WgXcQ', title: 'Beating bad habits' },
+const PLATFORMS: ReadonlyArray<{ icon: keyof typeof Ionicons.glyphMap; label: string }> = [
+  { icon: 'logo-instagram', label: 'Instagram' },
+  { icon: 'logo-tiktok',    label: 'TikTok' },
+  { icon: 'logo-youtube',   label: 'YouTube' },
+  { icon: 'logo-twitter',   label: 'X' },
 ];
 
 export default function SocialMediaScreen() {
   const router = useRouter();
   const theme = useAppStore((s) => s.theme);
-
-  async function open(url: string) {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (!supported) throw new Error('Cannot open this URL');
-      await Linking.openURL(url);
-    } catch (err) {
-      Alert.alert('Could not open', err instanceof Error ? err.message : String(err));
-    }
-  }
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.background }]}>
@@ -55,46 +40,29 @@ export default function SocialMediaScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={[styles.sectionLabel, { color: theme.colors.secondary }]}>Follow us</Text>
-        <View style={[styles.linkGroup, { backgroundColor: theme.colors.surface }]}>
-          {LINKS.map((l, i) => (
-            <Pressable
-              key={l.label}
-              accessibilityRole="link"
-              onPress={() => open(l.url)}
-              style={({ pressed }) => [
-                styles.linkRow,
-                i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.muted },
-                { opacity: pressed ? 0.6 : 1 },
-              ]}
-            >
-              <Ionicons name={l.icon} size={20} color={theme.colors.primary} style={styles.linkIcon} />
-              <Text style={[styles.linkLabel, { color: theme.colors.primary }]}>{l.label}</Text>
-              <Ionicons name="open-outline" size={16} color={theme.colors.muted} />
-            </Pressable>
-          ))}
+        <View style={styles.hero}>
+          <Ionicons name="megaphone-outline" size={64} color={theme.colors.accent} />
+          <Text style={[styles.heroTitle, { color: theme.colors.primary, fontFamily: theme.fonts.bold }]}>
+            Coming soon
+          </Text>
+          <Text style={[styles.heroBody, { color: theme.colors.secondary }]}>
+            We're setting up our socials. Follow along soon for tips, updates, and behind-the-scenes.
+          </Text>
         </View>
 
-        <Text style={[styles.sectionLabel, { color: theme.colors.secondary }]}>Featured videos</Text>
-        <View style={styles.videos}>
-          {VIDEOS.map((v) => (
-            <Pressable
-              key={v.title}
-              accessibilityRole="button"
-              onPress={() => open(`https://www.youtube.com/watch?v=${v.id}`)}
-              style={({ pressed }) => [styles.video, { opacity: pressed ? 0.6 : 1 }]}
+        <View style={[styles.group, { backgroundColor: theme.colors.surface }]}>
+          {PLATFORMS.map((p, i) => (
+            <View
+              key={p.label}
+              style={[
+                styles.row,
+                i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.muted },
+              ]}
             >
-              <Image
-                source={{ uri: `https://img.youtube.com/vi/${v.id}/hqdefault.jpg` }}
-                style={[styles.thumb, { backgroundColor: theme.colors.surface }]}
-              />
-              <View style={styles.playOverlay}>
-                <Ionicons name="play-circle" size={48} color="#FFFFFFEE" />
-              </View>
-              <Text style={[styles.videoTitle, { color: theme.colors.primary }]} numberOfLines={2}>
-                {v.title}
-              </Text>
-            </Pressable>
+              <Ionicons name={p.icon} size={20} color={theme.colors.muted} style={styles.rowIcon} />
+              <Text style={[styles.rowLabel, { color: theme.colors.secondary }]}>{p.label}</Text>
+              <Text style={[styles.soon, { color: theme.colors.muted }]}>Soon</Text>
+            </View>
           ))}
         </View>
       </ScrollView>
@@ -103,19 +71,17 @@ export default function SocialMediaScreen() {
 }
 
 const styles = StyleSheet.create({
-  root:         { flex: 1 },
-  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 8 },
-  iconBtn:      { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  title:        { fontSize: 18, fontWeight: '800', letterSpacing: 0.3 },
-  scroll:       { padding: 20, gap: 12 },
-  sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1.5, marginTop: 8 },
-  linkGroup:    { borderRadius: 16, overflow: 'hidden' },
-  linkRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
-  linkIcon:     { width: 24 },
-  linkLabel:    { flex: 1, fontSize: 15, fontWeight: '600' },
-  videos:       { gap: 12 },
-  video:        { gap: 6 },
-  thumb:        { aspectRatio: 16 / 9, borderRadius: 12 },
-  playOverlay:  { position: 'absolute', left: 0, right: 0, top: 0, bottom: 24, alignItems: 'center', justifyContent: 'center' },
-  videoTitle:   { fontSize: 14, fontWeight: '600' },
+  root:      { flex: 1 },
+  header:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 8 },
+  iconBtn:   { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  title:     { fontSize: 18, fontWeight: '800', letterSpacing: 0.3 },
+  scroll:    { padding: 20, gap: 24 },
+  hero:      { alignItems: 'center', gap: 10, marginTop: 24 },
+  heroTitle: { fontSize: 24, fontWeight: '800' },
+  heroBody:  { fontSize: 15, lineHeight: 22, textAlign: 'center', paddingHorizontal: 8 },
+  group:     { borderRadius: 16, overflow: 'hidden' },
+  row:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  rowIcon:   { width: 24 },
+  rowLabel:  { flex: 1, fontSize: 15, fontWeight: '600' },
+  soon:      { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
 });

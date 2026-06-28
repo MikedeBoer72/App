@@ -4,7 +4,7 @@
 //   1. No session                                     -> /(auth)/login
 //   2. Session, profile not yet loaded                -> splash
 //   3. Session, profile load failed                   -> error screen w/ sign out
-//   4. Session, profile.onboarding_completed = false  -> /onboarding/day-start-time
+//   4. Session, profile.onboarding_completed = false  -> /onboarding
 //   5. Session, level >= 5, not subscribed            -> /settings/subscription
 //   6. Otherwise                                      -> /(tabs)
 
@@ -142,7 +142,7 @@ export default function RootLayout() {
     if (!hydrated || !profile) return; // wait for the store / error screen handles failure
 
     if (!profile.onboarding_completed) {
-      if (top !== 'onboarding') router.replace('/onboarding/day-start-time');
+      if (top !== 'onboarding') router.replace('/onboarding');
       return;
     }
 
