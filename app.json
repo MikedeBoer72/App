@@ -19,7 +19,7 @@
       "bundleIdentifier": "com.yourlevel.app",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "UIBackgroundModes": ["fetch", "processing"],
+        "UIBackgroundModes": ["fetch"],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
