@@ -21,22 +21,12 @@ Living checklist from "now" to "live on the App Store." Tick boxes as you go.
 
 ---
 
-## PHASE 1 — Finish App Store Connect financial/legal setup
+## PHASE 1 — Finish App Store Connect financial/legal setup  ✅ DONE
 
-- [ ] **Paid Apps Agreement → Active**
-  - [ ] Contact Info filled
-  - [ ] Bank account added (Dutch IBAN + BIC, EUR, Checking)
-  - [ ] US W-8BEN tax form (BSN as Foreign Tax ID → 0% withholding) + other country forms
-  - [ ] DSA trader status (KvK number, public email/phone) + identification documents uploaded
-        (passport/ID + KvK uittreksel; doc language = English U.S.)
-- [ ] **Apply to Apple Small Business Program** (15% commission instead of 30%)
-  - App Store Connect → top-right user menu → Account → App Store Small Business Program → Enroll
-- [ ] **Subscription metadata → "Ready to Submit"**
-  - [ ] Subscription duration: 1 Month
-  - [ ] Price: $7.99 (US) + auto-filled territories
-  - [ ] Subscription localization (Display Name "YourLevel Pro", Description)
-  - [ ] **Subscription GROUP localization** (separate, often the missing one)
-  - [ ] Review screenshot (have a good one already) + review notes
+- [x] **Paid Apps Agreement → Active** (contact, bank, W-8BEN tax, DSA trader w/ KvK, ID docs)
+- [x] **Apple Small Business Program** enrolled (15% commission)
+- [x] **Subscription metadata → "Ready to Submit"** (duration, $7.99 price, localizations,
+      review screenshot, tax category). Availability: all countries.
 
 ## PHASE 2 — Credentials for RevenueCat
 
