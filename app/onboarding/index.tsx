@@ -27,7 +27,16 @@ import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
 
-type StepId = 'welcome' | 'xp' | 'streaks' | 'habits' | 'name' | 'time';
+type StepId =
+  | 'welcome'
+  | 'xp'
+  | 'streaks'
+  | 'habits'
+  | 'levels'
+  | 'addtasks'
+  | 'unlocks'
+  | 'name'
+  | 'time';
 
 const SLIDES: Record<
   Exclude<StepId, 'name' | 'time'>,
@@ -36,26 +45,51 @@ const SLIDES: Record<
   welcome: {
     icon: 'sparkles',
     title: 'Welcome to YourLevel',
-    body: 'Turn self-improvement into a game. Level up by building good habits and dropping the bad ones.',
+    body: 'Turn self-improvement into a game. Earn XP, level up, and unlock new looks by building good habits and dropping bad ones.',
   },
   xp: {
     icon: 'trending-up',
-    title: 'Earn XP every day',
-    body: 'Add up to 10 tasks a day and complete them to earn XP — up to 300 daily. Stack XP to level up and unlock themes.',
+    title: 'How tasks earn XP',
+    body: 'Add up to 10 tasks a day. Your first 3 are worth 100 XP each. Add more and the 300 daily cap splits evenly across them — so 6 tasks = 50 XP each. You can earn a max of 300 XP a day from tasks.',
   },
   streaks: {
     icon: 'flame',
-    title: 'Build your streak',
-    body: 'Finish all your tasks with no bad habits to keep your streak alive. The longer the streak, the bigger the bonus.',
+    title: 'Streaks & bonuses',
+    body: 'Finish ALL your tasks with zero bad habits to grow your streak by 1. Every day of your streak adds +5 bonus XP, and it stacks. Reach a 20-day streak and you earn a Second Chance — one missed day won’t reset you.',
   },
   habits: {
     icon: 'remove-circle',
-    title: 'Beat bad habits',
-    body: 'Track what trips you up. Logging a bad habit costs XP and breaks your streak — so you think twice before doing it.',
+    title: 'Bad habits cost you',
+    body: 'Track the habits you want to quit. Logging one costs 200 XP and breaks your streak for the day — so you think twice. Each habit only penalizes once per day.',
+  },
+  levels: {
+    icon: 'ribbon',
+    title: 'Leveling up',
+    body: 'Levels 1–5 cost 500 XP each. 5–20 cost 1,000. 20–100 cost 2,000. Past 100 it’s 5,000 each. Higher levels earn you new titles — Beginner, Warrior, Legend, and beyond.',
+  },
+  addtasks: {
+    icon: 'add-circle',
+    title: 'Adding tasks',
+    body: 'On your dashboard, tap the + next to "Tasks". Type a new task or pick a recent one, then add it. Tap the checkbox to complete it and watch the XP roll in. Long-press to drag and reorder.',
+  },
+  unlocks: {
+    icon: 'color-palette',
+    title: 'Unlock new looks',
+    body: 'Leveling up unlocks themes (fonts + colors) and background decorations at milestones — Cyberpunk, Solo Leveling, Vampire and more. Switch anytime in Settings → Fonts and Decorations. Some are Pro.',
   },
 };
 
-const ORDER: StepId[] = ['welcome', 'xp', 'streaks', 'habits', 'name', 'time'];
+const ORDER: StepId[] = [
+  'welcome',
+  'xp',
+  'streaks',
+  'habits',
+  'levels',
+  'addtasks',
+  'unlocks',
+  'name',
+  'time',
+];
 
 export default function Onboarding() {
   const theme = useAppStore((s) => s.theme);
