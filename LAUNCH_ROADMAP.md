@@ -35,16 +35,17 @@ Living checklist from "now" to "live on the App Store." Tick boxes as you go.
 - [ ] **In-App Purchase Key (.p8)**
   - App Store Connect → Users and Access → Integrations → In-App Purchase → generate key, download `.p8`, note Key ID + Issuer ID
 
-## PHASE 3 — RevenueCat config (do together; user clicks, assistant dictates)
+## PHASE 2 — Credentials  ✅ DONE
+- [x] App-Specific Shared Secret generated
+- [x] In-App Purchase Key (.p8) generated + saved
 
-- [ ] Project → add iOS app, bundle id `com.yourlevel.app`
-- [ ] Paste App-Specific Shared Secret
-- [ ] Add In-App Purchase Key (.p8 + Key ID + Issuer ID)
-- [ ] Products → import `pro_monthly`
-- [ ] Entitlements → create `pro`, attach `pro_monthly`
-- [ ] Offerings → default offering includes `pro_monthly`
-- [ ] Copy the **iOS public API key** (starts `appl_`) → put in `.env` as
-      `EXPO_PUBLIC_REVENUECAT_API_KEY`
+## PHASE 3 — RevenueCat config  ✅ DONE
+
+- [x] iOS app added, bundle id `com.yourlevel.app`, Shared Secret + IAP key
+- [x] Entitlement `pro`, product `pro_monthly`, default offering w/ monthly package
+- [x] iOS public API key `appl_sROxEsLTbYfTfpXNxqYClHrlDNV` wired into eas.json env
+      (all 3 EXPO_PUBLIC_ vars carried in eas.json for preview + production builds,
+      since .env is gitignored and doesn't reach EAS cloud builds)
 
 ## PHASE 4 — Privacy policy
 
