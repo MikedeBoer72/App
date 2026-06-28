@@ -5,32 +5,36 @@
 // - autoRefreshToken keeps the JWT fresh in the background.
 // - detectSessionInUrl is off: RN has no browser URL to parse.
 //
-// Run-time env validation throws a clear error during dev rather than
-// failing later with a confusing "fetch failed" once a query runs.
+// IMPORTANT: env vars MUST be referenced statically as
+// `process.env.EXPO_PUBLIC_*`. Expo's bundler does a literal
+// find-and-replace to inline these at build time; a dynamic lookup
+// like `process.env[name]` is NOT inlined and resolves to undefined
+// in a production build (it only "works" in Expo Go because the dev
+// server injects process.env at runtime). Spelling each name out is
+// required.
 
 import 'react-native-url-polyfill/auto';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value || value.startsWith('your_')) {
-    throw new Error(
-      `Missing ${name}. Set it in .env (see .env.example) and restart Expo with --clear.`,
-    );
-  }
-  return value;
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  // Surfaced loudly in dev; in production this should never happen
+  // because the values are inlined from eas.json `env` at build time.
+  console.error(
+    '[supabase] Missing EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY. ' +
+      'Set them in eas.json (build env) for production builds and .env for local dev.',
+  );
 }
 
-const SUPABASE_URL      = requireEnv('EXPO_PUBLIC_SUPABASE_URL');
-const SUPABASE_ANON_KEY = requireEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY');
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+export const supabase = createClient(SUPABASE_URL ?? '', SUPABASE_ANON_KEY ?? '', {
   auth: {
-    storage:           AsyncStorage,
-    autoRefreshToken:  true,
-    persistSession:    true,
+    storage:            AsyncStorage,
+    autoRefreshToken:   true,
+    persistSession:     true,
     detectSessionInUrl: false,
   },
 });
