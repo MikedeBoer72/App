@@ -1,9 +1,9 @@
 // Refer Friends screen.
 //
 // On mount we look for the user's referral row; if none exists we
-// generate a short code and insert one. The code is what gets shared
-// (https://yourlevel.app/r/<code>). Conversion + free month accounting
-// is done server-side in step 15 when the subscription webhook fires.
+// generate a short code and insert one. The code (not a URL) is what
+// the friend enters in-app. Conversion + free-month accounting is a
+// future server-side step once a subscription webhook exists.
 
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -24,8 +24,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 
-// TODO: replace with your real share domain before submission.
-const SHARE_BASE = 'https://yourlevel.app/r/';
+// We don't own yourlevel.app, so the share points at the real App
+// Store page (this is the ascAppId from eas.json). The referral code
+// travels in the message text; the friend enters it in the app. The
+// link 404s until the app is live, but it never sends people to a
+// domain we don't control.
+const APP_STORE_URL = 'https://apps.apple.com/app/id6782592411';
 
 interface Stats {
   total:      number;
@@ -95,12 +99,14 @@ export default function ReferFriendsScreen() {
     })();
   }, [profile?.id]);
 
-  const link = code ? `${SHARE_BASE}${code}` : '';
+  const shareMessage = code
+    ? `Join me on YourLevel and level up your habits! Download: ${APP_STORE_URL} — and enter my referral code ${code} when you subscribe to get me a free month.`
+    : '';
 
   async function copy() {
-    if (!link) return;
+    if (!code) return;
     try {
-      await Clipboard.setStringAsync(link);
+      await Clipboard.setStringAsync(shareMessage);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch (err) {
@@ -109,11 +115,11 @@ export default function ReferFriendsScreen() {
   }
 
   async function share() {
-    if (!link) return;
+    if (!code) return;
     try {
       await Share.share({
-        message: `Join me on YourLevel - level up your habits. ${link}`,
-        url:     link,
+        message: shareMessage,
+        url:     APP_STORE_URL,
       });
     } catch (err) {
       Alert.alert('Could not share', err instanceof Error ? err.message : String(err));
@@ -140,8 +146,7 @@ export default function ReferFriendsScreen() {
           Refer Friends, Get 1 Free Month
         </Text>
         <Text style={[styles.copy, { color: theme.colors.secondary }]}>
-          Share your link. When a friend downloads YourLevel and subscribes, your next month is on
-          us.
+          Share your code. When a friend downloads YourLevel and subscribes with it, your next month is on us.
         </Text>
 
         {/* Code card */}
@@ -153,7 +158,7 @@ export default function ReferFriendsScreen() {
               <Text style={[styles.codeLabel, { color: theme.colors.secondary }]}>YOUR CODE</Text>
               <Text style={[styles.code, { color: theme.colors.primary }]}>{code ?? '—'}</Text>
               <Text style={[styles.codeUrl, { color: theme.colors.muted }]} numberOfLines={1}>
-                {link}
+                Friends enter this when they subscribe
               </Text>
             </>
           )}
@@ -162,14 +167,14 @@ export default function ReferFriendsScreen() {
         {/* Actions */}
         <View style={styles.actions}>
           <Pressable
-            disabled={!link}
+            disabled={!code}
             onPress={copy}
             style={({ pressed }) => [
               styles.btn,
               {
                 backgroundColor: copied ? theme.colors.success : theme.colors.surface,
                 borderColor:     theme.colors.muted,
-                opacity:         !link ? 0.4 : pressed ? 0.7 : 1,
+                opacity:         !code ? 0.4 : pressed ? 0.7 : 1,
               },
             ]}
           >
@@ -184,19 +189,19 @@ export default function ReferFriendsScreen() {
                 { color: copied ? theme.colors.background : theme.colors.primary },
               ]}
             >
-              {copied ? 'Copied' : 'Copy link'}
+              {copied ? 'Copied' : 'Copy'}
             </Text>
           </Pressable>
 
           <Pressable
-            disabled={!link}
+            disabled={!code}
             onPress={share}
             style={({ pressed }) => [
               styles.btn,
               {
                 backgroundColor: theme.colors.accent,
                 borderColor:     'transparent',
-                opacity:         !link ? 0.4 : pressed ? 0.7 : 1,
+                opacity:         !code ? 0.4 : pressed ? 0.7 : 1,
               },
             ]}
           >
@@ -214,8 +219,8 @@ export default function ReferFriendsScreen() {
 
         {/* How it works */}
         <Text style={[styles.howTitle, { color: theme.colors.primary }]}>How it works</Text>
-        <Step n={1} text='Tap "Share" and send your link to a friend.'           theme={theme} />
-        <Step n={2} text="Your friend downloads YourLevel using your link."      theme={theme} />
+        <Step n={1} text='Tap "Share" and send your code to a friend.'           theme={theme} />
+        <Step n={2} text="Your friend downloads YourLevel and enters your code."      theme={theme} />
         <Step n={3} text="When they subscribe, your next month is free."         theme={theme} />
       </ScrollView>
     </SafeAreaView>
