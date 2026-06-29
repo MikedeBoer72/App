@@ -49,9 +49,17 @@ Living checklist from "now" to "live on the App Store." Tick boxes as you go.
 
 ## PHASE 4 — Privacy policy
 
-- [ ] Generate at termly.io (collect: email, purchase data; no analytics yet)
-- [ ] Host on a public Notion page (or real domain)
-- [ ] Save the URL — needed in the App Store listing
+The full policy is already written + tailored: see PRIVACY_POLICY.md in the
+repo root. Steps:
+- [ ] Fill the 2 placeholders in PRIVACY_POLICY.md: date + support email
+      (recommend a dedicated gmail like yourlevel.support@gmail.com, not personal)
+- [ ] Host it: notion.so → new page → paste the markdown → Share → Publish →
+      copy the public URL (yourlevel.notion.site/...)
+- [ ] App Store Connect → YourLevel → App Information → paste the URL into both
+      "Privacy Policy URL" and "Support URL"
+- [ ] App Store Connect → App Privacy → questionnaire. Collected + linked to
+      user, NOT for tracking: Email, Name, Photos(avatar), User Content,
+      Purchases. Everything else = Not Collected. Tracking = No.
 
 ## ⚠️ NEXT SESSION — START HERE: rebuild to bundle the latest fixes
 
