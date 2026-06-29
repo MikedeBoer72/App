@@ -142,6 +142,11 @@ shows real price, social "coming soon". Still to verify on the new build:
       auto-stripped, but verify
 - [ ] Watch reviews, reply within 24h
 - [ ] Plan v1.1 from real feedback (streak freeze, achievements, widget…)
+- [ ] **v1.1 — finish referrals**: the Refer Friends screen shows + shares a
+      code, but there is NO code-entry field for new users and NO logic to
+      grant the referrer a free month. For launch this is intentionally
+      left as display-only (Option A). v1.1: add a referral-code field in
+      onboarding + RevenueCat promo/grant logic for the free month.
 - [ ] Marketing: r/SoloLeveling, anime/habit TikTok, Twitter; later, outreach
       to Sung Jin-Woo VA (Aleks Le) *after* you have traction + a demo video
 
