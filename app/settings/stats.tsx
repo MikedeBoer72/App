@@ -14,8 +14,8 @@
 // task/habit changes.
 
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -26,11 +26,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { currentDayFor } from '@/lib/daily-reset';
 import { supabase } from '@/lib/supabase';
 import type { DailyLog, TaskHistoryEntry } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
 
-const HEATMAP_DAYS = 42; // 6 rows × 7 columns
+const HEATMAP_COLS = 7;
+const HEATMAP_ROWS = 6;
+const HEATMAP_DAYS = HEATMAP_COLS * HEATMAP_ROWS; // 42
+const HEATMAP_GAP = 4;
 
 export default function StatsScreen() {
   const router = useRouter();
@@ -40,53 +44,68 @@ export default function StatsScreen() {
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [gridWidth, setGridWidth] = useState(0);
 
-  useEffect(() => {
-    const uid = profile?.id;
-    if (!uid) return;
-    (async () => {
-      try {
-        // Match the heat-map window: only include task_history
-        // entries that have been used within the last HEATMAP_DAYS
-        // days, so the rankings reflect what the user is *currently*
-        // working on, not lifetime favorites.
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - HEATMAP_DAYS);
-        const cutoffIso = cutoff.toISOString();
+  // Refetch on every focus (not just mount) so a day rollover while
+  // the user was on the dashboard shows up when they open Stats.
+  useFocusEffect(
+    useCallback(() => {
+      const uid = profile?.id;
+      if (!uid) return;
+      let cancelled = false;
+      (async () => {
+        try {
+          // Match the heat-map window: only include task_history
+          // entries used within the last HEATMAP_DAYS days, so the
+          // rankings reflect current habits, not lifetime favorites.
+          const cutoff = new Date();
+          cutoff.setDate(cutoff.getDate() - HEATMAP_DAYS);
+          const cutoffIso = cutoff.toISOString();
 
-        const [logsRes, historyRes] = await Promise.all([
-          supabase.from('daily_logs')
-            .select('*')
-            .eq('user_id', uid)
-            .order('date', { ascending: false }),
-          supabase.from('task_history')
-            .select('*')
-            .eq('user_id', uid)
-            .gte('last_used', cutoffIso)
-            .order('use_count', { ascending: false })
-            .limit(50),
-        ]);
-        setLogs((logsRes.data ?? []) as DailyLog[]);
-        setHistory((historyRes.data ?? []) as TaskHistoryEntry[]);
-      } catch (err) {
-        console.warn('[stats] load failed', err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [profile?.id]);
+          const [logsRes, historyRes] = await Promise.all([
+            supabase.from('daily_logs')
+              .select('*')
+              .eq('user_id', uid)
+              .order('date', { ascending: false }),
+            supabase.from('task_history')
+              .select('*')
+              .eq('user_id', uid)
+              .gte('last_used', cutoffIso)
+              .order('use_count', { ascending: false })
+              .limit(50),
+          ]);
+          if (cancelled) return;
+          setLogs((logsRes.data ?? []) as DailyLog[]);
+          setHistory((historyRes.data ?? []) as TaskHistoryEntry[]);
+        } catch (err) {
+          console.warn('[stats] load failed', err);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [profile?.id]),
+  );
 
-  // ---- Heatmap cells ----
-  const heatmapCells = useMemo(() => {
+  // ---- Heatmap rows (explicit 6×7; percent-width cells + gap inside
+  // a flexWrap container collapse rows under the new architecture,
+  // which is why the grid used to render as a single week) ----
+  const heatmapRows = useMemo(() => {
     const logByDate = new Map(logs.map((l) => [l.date, l]));
-    const today = new Date();
-    const todayYmd = toYmd(today);
+    // "Today" is the user's logical day (respects day_start_time),
+    // not the device calendar date.
+    const todayYmd = profile
+      ? currentDayFor(new Date(), profile.day_start_time)
+      : toYmd(new Date());
+    const anchor = parseYmd(todayYmd);
     const cells: Array<{
       date:   string;
       status: 'success' | 'fail' | 'empty' | 'today';
     }> = [];
     for (let i = HEATMAP_DAYS - 1; i >= 0; i--) {
-      const d = new Date(today);
+      const d = new Date(anchor);
       d.setDate(d.getDate() - i);
       const ymd = toYmd(d);
       const log = logByDate.get(ymd);
@@ -97,8 +116,16 @@ export default function StatsScreen() {
       else                            status = 'fail';
       cells.push({ date: ymd, status });
     }
-    return cells;
-  }, [logs]);
+    const rows: (typeof cells)[] = [];
+    for (let r = 0; r < HEATMAP_ROWS; r++) {
+      rows.push(cells.slice(r * HEATMAP_COLS, (r + 1) * HEATMAP_COLS));
+    }
+    return rows;
+  }, [logs, profile]);
+
+  const cellSize = gridWidth > 0
+    ? Math.floor((gridWidth - HEATMAP_GAP * (HEATMAP_COLS - 1)) / HEATMAP_COLS)
+    : 0;
 
   // ---- Totals ----
   const totals = useMemo(() => {
@@ -142,22 +169,35 @@ export default function StatsScreen() {
           {/* Heatmap */}
           <SectionHeader text="Last 6 weeks" color={theme.colors.secondary} fontFamily={theme.fonts.bold} />
           <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-            <View style={styles.heatmap}>
-              {heatmapCells.map((cell) => (
-                <View
-                  key={cell.date}
-                  style={[
-                    styles.heatCell,
-                    cell.status === 'success'
-                      ? { backgroundColor: theme.colors.success }
-                      : cell.status === 'fail'
-                      ? { backgroundColor: theme.colors.danger }
-                      : cell.status === 'today'
-                      ? { backgroundColor: 'transparent', borderWidth: 2, borderColor: theme.colors.accent }
-                      : { backgroundColor: theme.colors.muted, opacity: 0.35 },
-                  ]}
-                />
-              ))}
+            <View
+              style={styles.heatmap}
+              onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}
+            >
+              {cellSize > 0 &&
+                heatmapRows.map((row, r) => (
+                  <View key={r} style={[styles.heatRow, r > 0 && { marginTop: HEATMAP_GAP }]}>
+                    {row.map((cell, c) => (
+                      <View
+                        key={cell.date}
+                        style={[
+                          {
+                            width: cellSize,
+                            height: cellSize,
+                            borderRadius: 5,
+                          },
+                          c > 0 && { marginLeft: HEATMAP_GAP },
+                          cell.status === 'success'
+                            ? { backgroundColor: theme.colors.success }
+                            : cell.status === 'fail'
+                            ? { backgroundColor: theme.colors.danger }
+                            : cell.status === 'today'
+                            ? { backgroundColor: 'transparent', borderWidth: 2, borderColor: theme.colors.accent }
+                            : { backgroundColor: theme.colors.muted, opacity: 0.35 },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                ))}
             </View>
             <View style={styles.legend}>
               <LegendDot color={theme.colors.success} label="Clean" textColor={theme.colors.secondary} />
@@ -293,6 +333,11 @@ function toYmd(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+function parseYmd(ymd: string): Date {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+}
+
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
@@ -307,8 +352,8 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 11, fontWeight: '800', letterSpacing: 2, marginTop: 12, marginBottom: 4 },
   card:         { borderRadius: 16, padding: 14, gap: 12 },
 
-  heatmap:      { flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'space-between' },
-  heatCell:     { width: '13%', aspectRatio: 1, borderRadius: 5 },
+  heatmap:      { width: '100%' },
+  heatRow:      { flexDirection: 'row' },
 
   legend:       { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
   legendItem:   { flexDirection: 'row', alignItems: 'center', gap: 5 },

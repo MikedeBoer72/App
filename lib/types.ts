@@ -39,6 +39,7 @@ export interface Task {
   id:            string;
   user_id:       string;
   name:          string;
+  /** Vestigial: predates the split-cap XP model; always true now. */
   is_primary:    boolean;
   is_completed:  boolean;
   xp_value:      number;

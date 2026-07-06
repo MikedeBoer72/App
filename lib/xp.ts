@@ -19,7 +19,7 @@ export const DAILY_TASK_XP_CAP = 300;
 export const MAX_ITEMS_PER_DAY = 10;
 
 /** Flat XP penalty when a bad habit is marked done. */
-export const BAD_HABIT_PENALTY = 200;
+export const BAD_HABIT_PENALTY = 150;
 
 /** Streak bonus XP awarded per day in the streak (stacks, no cap). */
 export const STREAK_BONUS_PER_DAY = 5;

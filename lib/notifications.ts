@@ -32,7 +32,6 @@ const URGENT_HOURS_BEFORE = 10;
 // is foregrounded. Set once at module load.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert:   true,
     shouldPlaySound:   true,
     shouldSetBadge:    false,
     shouldShowBanner:  true,

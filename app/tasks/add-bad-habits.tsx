@@ -5,7 +5,7 @@
 //   - filters task_history by type='bad_habit'
 //   - styles the Add button + accents in the danger color
 //   - drops the "4th task earns less" warning (penalties are flat
-//     200 XP for every bad habit; no tiers)
+//     150 XP for every bad habit; no tiers)
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';

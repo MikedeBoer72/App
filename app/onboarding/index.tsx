@@ -60,7 +60,7 @@ const SLIDES: Record<
   habits: {
     icon: 'remove-circle',
     title: 'Bad habits cost you',
-    body: 'Track the habits you want to quit. Logging one costs 200 XP and breaks your streak for the day — so you think twice. Each habit only penalizes once per day.',
+    body: 'Track the habits you want to quit. Logging one costs 150 XP and breaks your streak for the day — so you think twice. Each habit only penalizes once per day.',
   },
   levels: {
     icon: 'ribbon',

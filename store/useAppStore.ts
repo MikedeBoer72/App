@@ -35,7 +35,6 @@ import {
   applyXpDelta,
   BAD_HABIT_PENALTY,
   clampDailyTaskXp,
-  dailyTaskXpAwarded,
   DAILY_TASK_XP_CAP,
   getLevelName,
   MAX_ITEMS_PER_DAY,

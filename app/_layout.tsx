@@ -15,7 +15,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import type { Session } from '@supabase/supabase-js';
@@ -40,7 +40,7 @@ import { DEFAULT_THEME_ID, getTheme } from '@/constants/themes';
 // module load. Keep this above the component so it runs once on
 // every JS boot (including headless background launches).
 import '@/lib/background-tasks';
-import { ensureDailyResetBackgroundFetch } from '@/lib/daily-reset';
+import { currentDayFor, ensureDailyResetBackgroundFetch } from '@/lib/daily-reset';
 import { disableDailyReminders } from '@/lib/notifications';
 import {
   identifyRevenueCatUser,
@@ -128,6 +128,32 @@ export default function RootLayout() {
     const uid = session?.user?.id;
     if (uid) void loadForUser(uid);
   }, [session?.user?.id, loadForUser]);
+
+  // Roll the day over WITHOUT an app restart. The reset otherwise only
+  // ran inside loadForUser at startup, so an app left open (or
+  // backgrounded) past day-start kept showing yesterday. Check when the
+  // app returns to foreground and once a minute while active;
+  // loadForUser is idempotent so extra calls are harmless.
+  const lastActiveDate = profile?.last_active_date;
+  const dayStartTime = profile?.day_start_time;
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid || !lastActiveDate || !dayStartTime) return;
+
+    const checkRollover = () => {
+      const today = currentDayFor(new Date(), dayStartTime);
+      if (lastActiveDate !== today) void loadForUser(uid);
+    };
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') checkRollover();
+    });
+    const interval = setInterval(checkRollover, 60_000);
+    return () => {
+      sub.remove();
+      clearInterval(interval);
+    };
+  }, [session?.user?.id, lastActiveDate, dayStartTime, loadForUser]);
 
   // Route redirects.
   useEffect(() => {
