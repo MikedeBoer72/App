@@ -78,7 +78,7 @@ interface AppStore {
   setBadHabits:  (habits: BadHabit[]) => void;
 
   // ---- bootstrap ----
-  loadForUser:   (userId: string) => Promise<void>;
+  loadForUser:   (userId: string, opts?: { forceReset?: boolean }) => Promise<void>;
   reset:         () => void;
 
   // ---- task actions ----
@@ -154,13 +154,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // Bootstrap
   // ---------------------------------------------------------------------
 
-  async loadForUser(userId) {
+  async loadForUser(userId, opts) {
     try {
       // Idempotent multi-day catch-up. Non-fatal: if the trigger that
       // creates the profile is still in flight we'll just load what we
-      // have and try again next session.
+      // have and try again next session. forceReset closes out the
+      // current day even without a date advance (used when the
+      // day-start boundary passes because the user moved it to later
+      // the same day).
       try {
-        await runDailyResetIfNeeded({ supabase, userId });
+        await runDailyResetIfNeeded({ supabase, userId, forceToday: opts?.forceReset });
       } catch (resetErr) {
         console.warn('[useAppStore] daily reset failed (non-fatal)', resetErr);
       }

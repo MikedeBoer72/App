@@ -110,8 +110,8 @@ export default function DayStartTimeScreen() {
           Pick what time your day resets. Tasks clear and your streak updates at this time each day.
         </Text>
         <Text style={[styles.copy, { color: theme.colors.muted }]}>
-          Heads-up: moving the time to earlier than it is right now can close out your current day
-          immediately. Moving it later simply makes today longer.
+          Heads-up: if you pick a time later today, your current day ends the moment it arrives.
+          If you pick a time that already passed, the new time applies from tomorrow.
         </Text>
 
         <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>

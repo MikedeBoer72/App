@@ -27,7 +27,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
-import { TUTORIAL_PENDING_KEY, useAppStore } from '@/store/useAppStore';
+import { TUTORIAL_DONE_KEY, TUTORIAL_PENDING_KEY, useAppStore } from '@/store/useAppStore';
 
 // Kept intentionally short: welcome -> name -> day-start. The game
 // rules are taught by the interactive walkthrough on the dashboard
@@ -92,8 +92,13 @@ export default function Onboarding() {
         .single<Profile>();
       if (error || !data) throw error ?? new Error('Could not save');
       // Queue the interactive dashboard walkthrough for this fresh
-      // account. The dashboard picks the flag up on mount.
-      await AsyncStorage.setItem(TUTORIAL_PENDING_KEY, 'true').catch(() => {});
+      // account. Also clear the device-level "done" flag: it survives
+      // sign-outs and previously blocked every subsequent account on
+      // the same phone from ever seeing the tutorial.
+      await Promise.all([
+        AsyncStorage.setItem(TUTORIAL_PENDING_KEY, 'true'),
+        AsyncStorage.removeItem(TUTORIAL_DONE_KEY),
+      ]).catch(() => {});
       setProfile(data);
       // Root layout routes into the app once onboarding_completed flips.
     } catch (err) {

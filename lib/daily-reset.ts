@@ -117,6 +117,15 @@ export async function runDailyResetIfNeeded(opts: {
   supabase:  SupabaseClient;
   userId:    string;
   now?:      Date;
+  /**
+   * Close out the CURRENT day even though its date hasn't advanced.
+   * Used when the user moves day_start_time to later today: the
+   * boundary passes without a calendar-date change, which the normal
+   * date-walk can't see. The closed day keeps its date; the "new" day
+   * continues under the same date (its next close-out upserts over
+   * the same daily_logs row).
+   */
+  forceToday?: boolean;
 }): Promise<DailyResetResult> {
   const now = opts.now ?? new Date();
 
@@ -131,7 +140,38 @@ export async function runDailyResetIfNeeded(opts: {
 
   const today = currentDayFor(now, profile.day_start_time);
   if (profile.last_active_date >= today) {
-    return { daysProcessed: [], newProfile: profile };
+    if (!opts.forceToday) {
+      return { daysProcessed: [], newProfile: profile };
+    }
+    // Same-date boundary crossing: evaluate + log the current day,
+    // wipe the lists, zero the daily caps — but keep last_active_date.
+    const closed = await closeOutDay({
+      supabase: opts.supabase,
+      userId:   opts.userId,
+      profile,
+      day:      profile.last_active_date,
+    });
+    await opts.supabase.from('tasks').delete().eq('user_id', opts.userId);
+    await opts.supabase.from('bad_habits').delete().eq('user_id', opts.userId);
+    const { data: forced, error: fErr } = await opts.supabase
+      .from('profiles')
+      .update({
+        level:                          closed.profile.level,
+        total_xp:                       closed.profile.total_xp,
+        current_xp:                     closed.profile.current_xp,
+        day_streak:                     closed.profile.day_streak,
+        highest_streak:                 closed.profile.highest_streak,
+        second_chance_active:           closed.profile.second_chance_active,
+        second_chance_days_remaining:   closed.profile.second_chance_days_remaining,
+        daily_task_xp_earned:           0,
+        daily_bad_habit_xp_lost:        0,
+        bad_habits_penalized_today:     [],
+      })
+      .eq('id', opts.userId)
+      .select('*')
+      .single<Profile>();
+    if (fErr) throw fErr;
+    return { daysProcessed: [profile.last_active_date], newProfile: forced };
   }
 
   let running: Profile = { ...profile };

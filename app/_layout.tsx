@@ -14,7 +14,7 @@ import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { Slot, useRouter, useSegments } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -138,17 +138,32 @@ export default function RootLayout() {
   // loadForUser is idempotent so extra calls are harmless.
   const lastActiveDate = profile?.last_active_date;
   const dayStartTime = profile?.day_start_time;
+  // Previous logical-day value across checks. Survives effect
+  // re-subscription (day-start change) because it's a component ref.
+  const prevLogicalDayRef = useRef<string | null>(null);
   useEffect(() => {
     const uid = session?.user?.id;
     if (!uid || !lastActiveDate || !dayStartTime) return;
 
     const checkRollover = () => {
-      const today = currentDayFor(new Date(), dayStartTime);
-      // Strictly forward (> not !==): if the user moves their day-start
-      // LATER than the current time, the computed logical day is briefly
-      // BEHIND last_active_date — that must not re-trigger loads every
-      // minute. YMD strings compare correctly lexicographically.
-      if (today > lastActiveDate) void loadForUser(uid);
+      const logical = currentDayFor(new Date(), dayStartTime);
+      const prev = prevLogicalDayRef.current;
+      prevLogicalDayRef.current = logical;
+
+      // Normal case: the calendar date of the logical day advanced.
+      // Strictly forward (> not !==): moving day-start LATER than the
+      // current time puts the computed day briefly BEHIND
+      // last_active_date, which must not re-trigger loads every minute.
+      if (logical > lastActiveDate) {
+        void loadForUser(uid);
+        return;
+      }
+      // Same-date crossing: the user moved day-start to later TODAY and
+      // that moment just passed — logical flips yesterday -> today with
+      // no date advance beyond last_active_date. Close the day in place.
+      if (prev != null && prev !== logical && logical === lastActiveDate) {
+        void loadForUser(uid, { forceReset: true });
+      }
     };
 
     const sub = AppState.addEventListener('change', (state) => {

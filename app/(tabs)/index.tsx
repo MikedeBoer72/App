@@ -172,11 +172,11 @@ export default function Dashboard() {
     (async () => {
       try {
         if (useAppStore.getState().tutorialStep != null) return; // already running
-        const [pending, done] = await Promise.all([
-          AsyncStorage.getItem(TUTORIAL_PENDING_KEY),
-          AsyncStorage.getItem(TUTORIAL_DONE_KEY),
-        ]);
-        if (pending === 'true' && done !== 'true') startTutorial();
+        // Pending alone decides. (The old extra "done" check was
+        // device-level and permanently blocked new accounts on a
+        // phone where a previous account had finished/skipped.)
+        const pending = await AsyncStorage.getItem(TUTORIAL_PENDING_KEY);
+        if (pending === 'true') startTutorial();
       } catch {
         // non-fatal
       }
