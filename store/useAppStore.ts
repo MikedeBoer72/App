@@ -24,10 +24,11 @@ import { create } from 'zustand';
 import {
   DEFAULT_THEME_ID,
   getTheme,
+  THEMES,
   type Theme,
   type ThemeId,
 } from '@/constants/themes';
-import type { DecorationId } from '@/constants/decorations';
+import { DECORATIONS, type DecorationId } from '@/constants/decorations';
 import { currentDayFor, runDailyResetIfNeeded } from '@/lib/daily-reset';
 import { supabase } from '@/lib/supabase';
 import type { BadHabit, Profile, Task } from '@/lib/types';
@@ -46,9 +47,12 @@ import {
 // ---------------------------------------------------------------------------
 
 export interface LevelUpEvent {
-  from:       number;
-  to:         number;
-  levelName:  string;
+  from:                 number;
+  to:                   number;
+  levelName:            string;
+  /** Themes / decorations whose unlockLevel was crossed by this level-up. */
+  unlockedThemes:       ThemeId[];
+  unlockedDecorations:  DecorationId[];
 }
 
 interface AppStore {
@@ -753,7 +757,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
 // ---------------------------------------------------------------------------
 
 function levelUpEventFor(toLevel: number, fromLevel: number): LevelUpEvent {
-  return { from: fromLevel, to: toLevel, levelName: getLevelName(toLevel) };
+  return {
+    from:      fromLevel,
+    to:        toLevel,
+    levelName: getLevelName(toLevel),
+    unlockedThemes: THEMES
+      .filter((t) => t.unlockLevel > fromLevel && t.unlockLevel <= toLevel)
+      .map((t) => t.id),
+    unlockedDecorations: DECORATIONS
+      .filter((d) => d.unlockLevel > fromLevel && d.unlockLevel <= toLevel)
+      .map((d) => d.id),
+  };
 }
 
 async function persistProfileScore(userId: string, p: Profile): Promise<void> {

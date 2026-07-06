@@ -15,6 +15,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  Easing,
   Image,
   Modal,
   Pressable,
@@ -30,11 +31,15 @@ import {
 } from 'react-native-draggable-flatlist';
 
 import { BadHabitItem } from '@/components/BadHabitItem';
+import { Confetti } from '@/components/Confetti';
 import { DecorationLayer } from '@/components/DecorationLayer';
 import { LevelCircle } from '@/components/LevelCircle';
 import { StreakDisplay } from '@/components/StreakDisplay';
 import { TaskItem } from '@/components/TaskItem';
+import { getTheme } from '@/constants/themes';
+import { getDecoration } from '@/constants/decorations';
 import { DAILY_TASK_XP_CAP, getXpProgress } from '@/lib/xp';
+import type { LevelUpEvent } from '@/store/useAppStore';
 import type { BadHabit, Task } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -47,6 +52,8 @@ export default function Dashboard() {
   const theme = useAppStore((s) => s.theme);
   const levelUpEvent = useAppStore((s) => s.levelUpEvent);
   const clearLevelUpEvent = useAppStore((s) => s.clearLevelUpEvent);
+  const setTheme = useAppStore((s) => s.setTheme);
+  const setDecoration = useAppStore((s) => s.setDecoration);
 
   const completeTask = useAppStore((s) => s.completeTask);
   const uncompleteTask = useAppStore((s) => s.uncompleteTask);
@@ -358,12 +365,29 @@ export default function Dashboard() {
         onRequestClose={clearLevelUpEvent}
       >
         <Pressable style={styles.modalRoot} onPress={clearLevelUpEvent}>
-          <LevelUpCard
-            level={levelUpEvent?.to ?? 0}
-            name={levelUpEvent?.levelName ?? ''}
-            colors={theme.colors}
-            fontFamily={theme.fonts.heavy}
+          <Confetti
+            colors={[
+              theme.colors.accent,
+              theme.colors.success,
+              theme.colors.primary,
+              theme.colors.secondary,
+              theme.colors.danger,
+            ]}
           />
+          {levelUpEvent ? (
+            <LevelUpCard
+              event={levelUpEvent}
+              theme={theme}
+              onApplyTheme={(id) => {
+                void setTheme(id);
+                clearLevelUpEvent();
+              }}
+              onApplyDecoration={(id) => {
+                void setDecoration(id);
+                clearLevelUpEvent();
+              }}
+            />
+          ) : null}
         </Pressable>
       </Modal>
     </SafeAreaView>
@@ -430,23 +454,36 @@ function XpToast({ amount, color }: { amount: number; color: string }) {
   );
 }
 
-/** Level-up celebration: spring-in scale + glow pulse + success haptic. */
+/**
+ * Level-up celebration v2: spring-in card, pulsing glow, slowly
+ * rotating light rays, double haptic, and — when the level-up crossed
+ * a theme / decoration unlockLevel — "NEW UNLOCK" cards with a one-tap
+ * Apply button.
+ */
 function LevelUpCard({
-  level,
-  name,
-  colors,
-  fontFamily,
+  event,
+  theme,
+  onApplyTheme,
+  onApplyDecoration,
 }: {
-  level:       number;
-  name:        string;
-  colors:      { surface: string; primary: string; secondary: string; accent: string; muted: string };
-  fontFamily?: string;
+  event:              LevelUpEvent;
+  theme:              ReturnType<typeof useAppStore.getState>['theme'];
+  onApplyTheme:       (id: Parameters<typeof getTheme>[0]) => void;
+  onApplyDecoration:  (id: Parameters<typeof getDecoration>[0]) => void;
 }) {
+  const colors = theme.colors;
+  const fontFamily = theme.fonts.heavy;
   const pop = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
+  const rays = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Double-tap haptic: success now, a lighter echo shortly after.
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const echo = setTimeout(() => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, 250);
+
     Animated.spring(pop, { toValue: 1, friction: 5, tension: 60, useNativeDriver: true }).start();
     Animated.loop(
       Animated.sequence([
@@ -454,15 +491,43 @@ function LevelUpCard({
         Animated.timing(pulse, { toValue: 0, duration: 900, useNativeDriver: true }),
       ]),
     ).start();
-  }, [pop, pulse]);
+    Animated.loop(
+      Animated.timing(rays, { toValue: 1, duration: 14000, easing: Easing.linear, useNativeDriver: true }),
+    ).start();
+    return () => clearTimeout(echo);
+  }, [pop, pulse, rays]);
 
   const cardScale = pop.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
   const cardOpacity = pop;
   const glowScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.15] });
   const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.05] });
+  const raysRotate = rays.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
+  const unlockedThemes = event.unlockedThemes.map(getTheme);
+  const unlockedDecorations = event.unlockedDecorations.map(getDecoration);
+  const hasUnlocks = unlockedThemes.length > 0 || unlockedDecorations.length > 0;
 
   return (
     <View style={styles.levelUpWrap} pointerEvents="box-none">
+      {/* Rotating light rays behind everything. */}
+      <Animated.View
+        style={[styles.raysWrap, { transform: [{ rotate: raysRotate }] }]}
+        pointerEvents="none"
+      >
+        {Array.from({ length: 8 }, (_, i) => (
+          <View
+            key={i}
+            style={[
+              styles.ray,
+              {
+                backgroundColor: colors.accent,
+                transform: [{ rotate: `${i * 45}deg` }, { translateY: -170 }],
+              },
+            ]}
+          />
+        ))}
+      </Animated.View>
+
       {/* Pulsing accent glow behind the card. */}
       <Animated.View
         style={[
@@ -474,6 +539,7 @@ function LevelUpCard({
           },
         ]}
       />
+
       <Animated.View
         style={[
           styles.modalCard,
@@ -485,9 +551,59 @@ function LevelUpCard({
         ]}
       >
         <Text style={[styles.modalKicker, { color: colors.accent, fontFamily }]}>LEVEL UP</Text>
-        <Text style={[styles.modalLevel, { color: colors.primary, fontFamily }]}>{level}</Text>
-        <Text style={[styles.modalName, { color: colors.secondary, fontFamily }]}>{name}</Text>
-        <Text style={[styles.modalHint, { color: colors.muted }]}>tap to continue</Text>
+        <Text style={[styles.modalLevel, { color: colors.primary, fontFamily }]}>{event.to}</Text>
+        <Text style={[styles.modalName, { color: colors.secondary, fontFamily }]}>{event.levelName}</Text>
+
+        {hasUnlocks ? (
+          <View style={styles.unlocks}>
+            {unlockedThemes.map((t) => (
+              <View key={t.id} style={[styles.unlockCard, { borderColor: colors.accent }]}>
+                <View style={[styles.unlockSwatch, { backgroundColor: t.colors.background }]}>
+                  <Text style={{ color: t.colors.primary, fontFamily: t.fonts.bold, fontSize: 18 }}>Aa</Text>
+                </View>
+                <View style={styles.unlockMeta}>
+                  <Text style={[styles.unlockKicker, { color: colors.accent }]}>NEW THEME</Text>
+                  <Text style={[styles.unlockName, { color: colors.primary }]} numberOfLines={1}>
+                    {t.name}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => onApplyTheme(t.id)}
+                  style={({ pressed }) => [
+                    styles.unlockApply,
+                    { backgroundColor: colors.accent, opacity: pressed ? 0.7 : 1 },
+                  ]}
+                >
+                  <Text style={[styles.unlockApplyText, { color: colors.background }]}>Apply</Text>
+                </Pressable>
+              </View>
+            ))}
+            {unlockedDecorations.map((d) => (
+              <View key={d.id} style={[styles.unlockCard, { borderColor: colors.accent }]}>
+                <View style={[styles.unlockSwatch, { backgroundColor: colors.background }]}>
+                  <Ionicons name="sparkles" size={18} color={colors.accent} />
+                </View>
+                <View style={styles.unlockMeta}>
+                  <Text style={[styles.unlockKicker, { color: colors.accent }]}>NEW DECORATION</Text>
+                  <Text style={[styles.unlockName, { color: colors.primary }]} numberOfLines={1}>
+                    {d.name}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => onApplyDecoration(d.id)}
+                  style={({ pressed }) => [
+                    styles.unlockApply,
+                    { backgroundColor: colors.accent, opacity: pressed ? 0.7 : 1 },
+                  ]}
+                >
+                  <Text style={[styles.unlockApplyText, { color: colors.background }]}>Apply</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        <Text style={[styles.modalHint, { color: colors.muted }]}>tap anywhere to continue</Text>
       </Animated.View>
     </View>
   );
@@ -537,8 +653,18 @@ const styles = StyleSheet.create({
   xpToastText:    { fontSize: 28, fontWeight: '900', letterSpacing: 0.5, textShadowColor: '#0008', textShadowRadius: 6 },
   levelUpWrap:    { alignItems: 'center', justifyContent: 'center' },
   levelUpGlow:    { position: 'absolute', width: 320, height: 320, borderRadius: 160 },
+  raysWrap:       { position: 'absolute', width: 1, height: 1, alignItems: 'center', justifyContent: 'center' },
+  ray:            { position: 'absolute', width: 3, height: 180, borderRadius: 2, opacity: 0.16 },
+  unlocks:        { alignSelf: 'stretch', gap: 10, marginTop: 18 },
+  unlockCard:     { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 14, borderWidth: 1.5 },
+  unlockSwatch:   { width: 44, height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  unlockMeta:     { flex: 1, gap: 1 },
+  unlockKicker:   { fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
+  unlockName:     { fontSize: 15, fontWeight: '700' },
+  unlockApply:    { paddingHorizontal: 14, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  unlockApplyText:{ fontSize: 13, fontWeight: '700' },
   modalRoot:      { flex: 1, backgroundColor: '#000000B0', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  modalCard:      { padding: 32, borderRadius: 20, alignItems: 'center', minWidth: 240 },
+  modalCard:      { padding: 28, borderRadius: 20, alignItems: 'center', width: '86%', maxWidth: 360 },
   modalKicker:    { fontSize: 12, fontWeight: '800', letterSpacing: 3, marginBottom: 8 },
   modalLevel:     { fontSize: 72, fontWeight: '900', includeFontPadding: false },
   modalName:      { fontSize: 16, fontWeight: '700', letterSpacing: 1.5, marginTop: 4 },
