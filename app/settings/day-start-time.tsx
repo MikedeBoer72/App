@@ -109,6 +109,10 @@ export default function DayStartTimeScreen() {
         <Text style={[styles.copy, { color: theme.colors.secondary }]}>
           Pick what time your day resets. Tasks clear and your streak updates at this time each day.
         </Text>
+        <Text style={[styles.copy, { color: theme.colors.muted }]}>
+          Heads-up: moving the time to earlier than it is right now can close out your current day
+          immediately. Moving it later simply makes today longer.
+        </Text>
 
         <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
           <DateTimePicker

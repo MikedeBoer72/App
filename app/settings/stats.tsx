@@ -26,7 +26,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { currentDayFor } from '@/lib/daily-reset';
 import { supabase } from '@/lib/supabase';
 import type { DailyLog, TaskHistoryEntry } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
@@ -94,11 +93,10 @@ export default function StatsScreen() {
   // which is why the grid used to render as a single week) ----
   const heatmapRows = useMemo(() => {
     const logByDate = new Map(logs.map((l) => [l.date, l]));
-    // "Today" is the user's logical day (respects day_start_time),
-    // not the device calendar date.
-    const todayYmd = profile
-      ? currentDayFor(new Date(), profile.day_start_time)
-      : toYmd(new Date());
+    // "Today" is the profile's active day (last_active_date), which the
+    // daily reset keeps current — not a wall-clock recomputation that
+    // would shift when the user edits their day-start time mid-day.
+    const todayYmd = profile?.last_active_date ?? toYmd(new Date());
     const anchor = parseYmd(todayYmd);
     const cells: Array<{
       date:   string;

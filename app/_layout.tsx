@@ -144,7 +144,11 @@ export default function RootLayout() {
 
     const checkRollover = () => {
       const today = currentDayFor(new Date(), dayStartTime);
-      if (lastActiveDate !== today) void loadForUser(uid);
+      // Strictly forward (> not !==): if the user moves their day-start
+      // LATER than the current time, the computed logical day is briefly
+      // BEHIND last_active_date — that must not re-trigger loads every
+      // minute. YMD strings compare correctly lexicographically.
+      if (today > lastActiveDate) void loadForUser(uid);
     };
 
     const sub = AppState.addEventListener('change', (state) => {

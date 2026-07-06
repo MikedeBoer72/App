@@ -144,9 +144,10 @@ export default function NotificationsScreen() {
 }
 
 function fmt(r: { hour: number; minute: number }): string {
-  const ampm = r.hour >= 12 ? 'PM' : 'AM';
-  const h12 = r.hour % 12 || 12;
-  return `${h12}:${String(r.minute).padStart(2, '0')} ${ampm}`;
+  // Device-locale time: 24h on Dutch phones, AM/PM on US ones.
+  const d = new Date();
+  d.setHours(r.hour, r.minute, 0, 0);
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 const styles = StyleSheet.create({

@@ -802,12 +802,13 @@ function formatToday(): string {
 }
 
 function formatDayStart(hms: string): string {
+  // Format in the DEVICE locale: Dutch phones show "21:00", US phones
+  // "9:00 PM". The old hardcoded AM/PM read as "the wrong time" to
+  // 24-hour-clock users.
   const [h = '0', m = '0'] = hms.split(':');
-  const hr = Number(h) || 0;
-  const mn = Number(m) || 0;
-  const ampm = hr >= 12 ? 'PM' : 'AM';
-  const hr12 = hr % 12 || 12;
-  return `${hr12}:${String(mn).padStart(2, '0')} ${ampm}`;
+  const d = new Date();
+  d.setHours(Number(h) || 0, Number(m) || 0, 0, 0);
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 const styles = StyleSheet.create({

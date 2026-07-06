@@ -35,7 +35,7 @@ import {
   type ThemeId,
 } from '@/constants/themes';
 import { DECORATIONS, type DecorationId } from '@/constants/decorations';
-import { currentDayFor, runDailyResetIfNeeded } from '@/lib/daily-reset';
+import { runDailyResetIfNeeded } from '@/lib/daily-reset';
 import { supabase } from '@/lib/supabase';
 import type { BadHabit, Profile, Task } from '@/lib/types';
 import {
@@ -191,7 +191,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
         profile = created;
       }
 
-      const today = currentDayFor(new Date(), profile.day_start_time);
+      // The active day is last_active_date (the daily reset above just
+      // brought it current). Never recompute it from the wall clock
+      // here: changing day_start_time mid-day would shift the computed
+      // day and make the task list point at a day nothing is stamped
+      // with.
+      const today = profile.last_active_date;
 
       const [{ data: tasks }, { data: habits }] = await Promise.all([
         supabase.from('tasks')
@@ -246,7 +251,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!trimmed) return null;
     if (get().tasks.length >= MAX_ITEMS_PER_DAY) return null;
 
-    const today = currentDayFor(new Date(), profile.day_start_time);
+    const today = profile.last_active_date;
     // The 300/day cap is distributed evenly across today's tasks.
     // After this insert there'll be currentCount + 1 tasks, so each
     // incomplete task is worth floor(300 / newTotal).
@@ -433,7 +438,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     );
     set({ tasks: next });
 
-    const today = currentDayFor(new Date(), profile.day_start_time);
+    const today = profile.last_active_date;
     try {
       await supabase.from('tasks').delete().eq('id', taskId);
       if (remaining.length > 0) {
@@ -491,7 +496,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!trimmed) return null;
     if (get().badHabits.length >= MAX_ITEMS_PER_DAY) return null;
 
-    const today = currentDayFor(new Date(), profile.day_start_time);
+    const today = profile.last_active_date;
     const nextOrderIndex = Math.max(0, ...get().badHabits.map((h) => h.order_index)) + 1;
 
     try {
