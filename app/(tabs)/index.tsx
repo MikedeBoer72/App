@@ -160,10 +160,18 @@ export default function Dashboard() {
 
   // Offer the walkthrough once, right after a fresh account finishes
   // onboarding (the pending flag is set there).
+  //
+  // IMPORTANT: the root layout renders a plain <Slot/>, so navigating
+  // to /tasks/add-tasks UNMOUNTS this screen and coming back REMOUNTS
+  // it — this effect fires again mid-tutorial. The tutorialStep guard
+  // prevents the restart-to-step-0 loop that used to trap users right
+  // after adding their first task. The store (which survives the
+  // remount) keeps the real step.
   useEffect(() => {
     if (!profile?.id) return;
     (async () => {
       try {
+        if (useAppStore.getState().tutorialStep != null) return; // already running
         const [pending, done] = await Promise.all([
           AsyncStorage.getItem(TUTORIAL_PENDING_KEY),
           AsyncStorage.getItem(TUTORIAL_DONE_KEY),
