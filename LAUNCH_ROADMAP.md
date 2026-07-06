@@ -61,6 +61,23 @@ repo root. Steps:
       user, NOT for tracking: Email, Name, Photos(avatar), User Content,
       Purchases. Everything else = Not Collected. Tracking = No.
 
+## ⚠️ NEW SINCE LAST BUILD (needs `npm install` + migration 006 + rebuild)
+
+Big feature/fix session (commits 5163c99..c3e923c):
+- Stats heatmap actually shows 6 weeks (was collapsing to 1 row)
+- Day rolls over WITHOUT restarting the app (foreground + 60s check)
+- Bad habit penalty 200 -> 150  → RUN supabase/migrations/006_penalty_150.sql
+- Level-up celebration v2: confetti + rays + double haptic + NEW UNLOCK
+  cards (themes/decorations crossed by the level-up) with one-tap Apply
+- Sound system (expo-audio ~1.1.1 — new dep, run `npm install`):
+  tap/complete/levelup/unlock effects + 24s chill music loop,
+  Settings → Sound toggles (effects ON, music OFF by default)
+- Interactive tutorial: onboarding is now 3 steps; a spotlight
+  walkthrough runs on the real dashboard (forced taps: add a task,
+  complete it) — only for fresh accounts
+- To test the tutorial on an existing device: sign up with a NEW
+  account, or it won't trigger (pending flag set at onboarding only)
+
 ## ⚠️ NEXT SESSION — START HERE: rebuild to bundle the latest fixes
 
 The app NOW RUNS on TestFlight (the launch crash + the ITMS-90771 build
