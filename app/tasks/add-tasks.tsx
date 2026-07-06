@@ -25,6 +25,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { play } from '@/lib/sound';
 import { MAX_ITEMS_PER_DAY, xpValuePerTask } from '@/lib/xp';
 import { supabase } from '@/lib/supabase';
 import type { TaskHistoryEntry } from '@/lib/types';
@@ -98,6 +99,7 @@ export default function AddTasksScreen() {
     const inserted = await addTask(trimmedName);
     setBusy(false);
     if (!inserted) return;
+    play('tap');
 
     // Reflect the bump locally so the suggestion list reorders without
     // a roundtrip.

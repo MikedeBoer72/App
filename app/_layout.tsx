@@ -48,6 +48,7 @@ import {
   listenForEntitlementChanges,
   logOutRevenueCat,
 } from '@/lib/revenuecat';
+import { initSound } from '@/lib/sound';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -104,6 +105,7 @@ export default function RootLayout() {
   // placeholder; falls through silently in Expo Go.
   useEffect(() => {
     initRevenueCat();
+    void initSound();
   }, []);
 
   // Ask iOS to schedule the daily-reset background fetch once. Safe

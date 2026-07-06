@@ -38,6 +38,7 @@ import { StreakDisplay } from '@/components/StreakDisplay';
 import { TaskItem } from '@/components/TaskItem';
 import { getTheme } from '@/constants/themes';
 import { getDecoration } from '@/constants/decorations';
+import { play } from '@/lib/sound';
 import { DAILY_TASK_XP_CAP, getXpProgress } from '@/lib/xp';
 import type { LevelUpEvent } from '@/store/useAppStore';
 import type { BadHabit, Task } from '@/lib/types';
@@ -91,10 +92,12 @@ export default function Dashboard() {
   async function onToggleTask(task: Task) {
     if (task.is_completed) {
       void Haptics.selectionAsync();
+      play('tap');
       void uncompleteTask(task.id);
       return;
     }
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    play('complete');
     const { awarded } = await completeTask(task.id);
     if (awarded > 0) {
       const id = Date.now() + Math.random();
@@ -153,6 +156,7 @@ export default function Dashboard() {
           style:   'destructive',
           onPress: () => {
             void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            play('tap');
             void completeBadHabit(habit.id);
           },
         },
@@ -480,6 +484,11 @@ function LevelUpCard({
   useEffect(() => {
     // Double-tap haptic: success now, a lighter echo shortly after.
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    play('levelup');
+    const sparkle =
+      event.unlockedThemes.length > 0 || event.unlockedDecorations.length > 0
+        ? setTimeout(() => play('unlock'), 600)
+        : null;
     const echo = setTimeout(() => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }, 250);
@@ -494,7 +503,10 @@ function LevelUpCard({
     Animated.loop(
       Animated.timing(rays, { toValue: 1, duration: 14000, easing: Easing.linear, useNativeDriver: true }),
     ).start();
-    return () => clearTimeout(echo);
+    return () => {
+      clearTimeout(echo);
+      if (sparkle) clearTimeout(sparkle);
+    };
   }, [pop, pulse, rays]);
 
   const cardScale = pop.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });

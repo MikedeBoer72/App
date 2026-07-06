@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { play } from '@/lib/sound';
 import { BAD_HABIT_PENALTY, MAX_ITEMS_PER_DAY } from '@/lib/xp';
 import { supabase } from '@/lib/supabase';
 import type { TaskHistoryEntry } from '@/lib/types';
@@ -86,6 +87,7 @@ export default function AddBadHabitsScreen() {
     const inserted = await addBadHabit(trimmedName);
     setBusy(false);
     if (!inserted) return;
+    play('tap');
 
     setHistory((prev) => {
       const existing = prev.find((h) => h.name.toLowerCase() === trimmedName.toLowerCase());
