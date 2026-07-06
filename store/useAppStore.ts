@@ -19,7 +19,13 @@
 // indicator when there's a bad habit done today so the user still
 // sees immediate feedback.
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+
+/** Set by onboarding when a fresh account finishes sign-up. */
+export const TUTORIAL_PENDING_KEY = 'yourlevel:tutorial-pending';
+/** Set once the walkthrough has been completed or skipped. */
+export const TUTORIAL_DONE_KEY = 'yourlevel:tutorial-done';
 
 import {
   DEFAULT_THEME_ID,
@@ -97,6 +103,13 @@ interface AppStore {
   setUsername:         (name: string) => Promise<void>;
   uploadAvatar:        (localUri: string) => Promise<boolean>;
   clearLevelUpEvent:   () => void;
+
+  // ---- interactive tutorial (first-run walkthrough on the dashboard) ----
+  /** null = not running; otherwise index into the dashboard's step list. */
+  tutorialStep:        number | null;
+  startTutorial:       () => void;
+  advanceTutorial:     () => void;
+  finishTutorial:      () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -749,6 +762,28 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   clearLevelUpEvent() {
     set({ levelUpEvent: null });
+  },
+
+  tutorialStep: null,
+
+  startTutorial() {
+    set({ tutorialStep: 0 });
+  },
+
+  advanceTutorial() {
+    const cur = get().tutorialStep;
+    if (cur == null) return;
+    set({ tutorialStep: cur + 1 });
+  },
+
+  async finishTutorial() {
+    set({ tutorialStep: null });
+    try {
+      await AsyncStorage.setItem(TUTORIAL_DONE_KEY, 'true');
+      await AsyncStorage.removeItem(TUTORIAL_PENDING_KEY);
+    } catch {
+      // non-fatal: worst case the tutorial offers itself again
+    }
   },
 }));
 

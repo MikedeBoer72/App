@@ -34,6 +34,7 @@ import { useAppStore } from '@/store/useAppStore';
 export default function AddTasksScreen() {
   const router = useRouter();
   const theme = useAppStore((s) => s.theme);
+  const tutorialStep = useAppStore((s) => s.tutorialStep);
   const profile = useAppStore((s) => s.profile);
   const tasks = useAppStore((s) => s.tasks);
   const addTask = useAppStore((s) => s.addTask);
@@ -101,6 +102,15 @@ export default function AddTasksScreen() {
     if (!inserted) return;
     play('tap');
 
+    // During the walkthrough's "add your first task" step, adding one
+    // advances the tutorial and returns straight to the dashboard so
+    // the next step (complete it) can spotlight the new row.
+    if (useAppStore.getState().tutorialStep === 1) {
+      useAppStore.getState().advanceTutorial();
+      router.back();
+      return;
+    }
+
     // Reflect the bump locally so the suggestion list reorders without
     // a roundtrip.
     setHistory((prev) => {
@@ -147,6 +157,14 @@ export default function AddTasksScreen() {
         <Text style={[styles.headerTitle, { color: theme.colors.primary }]}>Add Task</Text>
         <View style={styles.iconBtn} />
       </View>
+
+      {tutorialStep === 1 ? (
+        <View style={[styles.tutorialBanner, { backgroundColor: theme.colors.accent }]}>
+          <Text style={[styles.tutorialBannerText, { color: theme.colors.background }]}>
+            TUTORIAL · Type anything you want to do today, then tap Add.
+          </Text>
+        </View>
+      ) : null}
 
       {/* Input + Add button */}
       <View style={styles.inputRow}>
@@ -303,4 +321,6 @@ const styles = StyleSheet.create({
   toastWrap:   { position: 'absolute', left: 0, right: 0, bottom: 32, alignItems: 'center' },
   toast:       { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 },
   toastText:   { fontSize: 13, fontWeight: '700', maxWidth: 240 },
+  tutorialBanner:     { marginHorizontal: 20, marginBottom: 8, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  tutorialBannerText: { fontSize: 12.5, fontWeight: '700', letterSpacing: 0.3 },
 });

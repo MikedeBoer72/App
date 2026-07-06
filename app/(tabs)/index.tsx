@@ -30,9 +30,12 @@ import {
   type RenderItemParams,
 } from 'react-native-draggable-flatlist';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { BadHabitItem } from '@/components/BadHabitItem';
 import { Confetti } from '@/components/Confetti';
 import { DecorationLayer } from '@/components/DecorationLayer';
+import { TutorialOverlay, type HoleRect } from '@/components/TutorialOverlay';
 import { LevelCircle } from '@/components/LevelCircle';
 import { StreakDisplay } from '@/components/StreakDisplay';
 import { TaskItem } from '@/components/TaskItem';
@@ -40,9 +43,66 @@ import { getTheme } from '@/constants/themes';
 import { getDecoration } from '@/constants/decorations';
 import { play } from '@/lib/sound';
 import { DAILY_TASK_XP_CAP, getXpProgress } from '@/lib/xp';
-import type { LevelUpEvent } from '@/store/useAppStore';
+import {
+  TUTORIAL_DONE_KEY,
+  TUTORIAL_PENDING_KEY,
+  type LevelUpEvent,
+} from '@/store/useAppStore';
 import type { BadHabit, Task } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
+
+// ---------------------------------------------------------------------------
+// First-run walkthrough steps. `target` keys map to refs registered on
+// dashboard elements; null target = centered card over a full scrim.
+// `next` = button label; omitted = forced tap (user must tap the
+// spotlighted control to continue).
+// ---------------------------------------------------------------------------
+
+type TutorialTarget = 'addTask' | 'firstTask' | 'streak' | 'habits' | 'avatar';
+
+const TUTORIAL_STEPS: ReadonlyArray<{
+  target: TutorialTarget | null;
+  title:  string;
+  body:   string;
+  next?:  string;
+}> = [
+  {
+    target: null,
+    title:  'This is your dashboard',
+    body:   'The big ring is your level. Complete tasks to fill it with XP. Let’s add your first task.',
+    next:   'Show me',
+  },
+  {
+    target: 'addTask',
+    title:  'Add your first task',
+    body:   'Tap the + to add something you want to do today.',
+    // forced tap
+  },
+  {
+    target: 'firstTask',
+    title:  'Now complete it',
+    body:   'Tap the checkbox when a task is done. Your first 3 tasks are worth 100 XP each — add more and the daily 300 XP splits across all of them.',
+    // forced tap
+  },
+  {
+    target: 'streak',
+    title:  'Your streak',
+    body:   'Finish ALL your tasks with zero bad habits and your streak grows by 1. Every streak day adds +5 bonus XP. Reach 20 days and you earn a Second Chance — one miss won’t reset you.',
+    next:   'Next',
+  },
+  {
+    target: 'habits',
+    title:  'Bad habits cost you',
+    body:   'Track what you’re trying to quit down here. Logging one costs 150 XP and breaks the day’s streak — honesty is the whole point.',
+    next:   'Next',
+  },
+  {
+    target: 'avatar',
+    title:  'Level up, unlock more',
+    body:   'New themes and background decorations unlock as you level. Find them any time in Settings → Fonts and Decorations.',
+    next:   'Finish',
+  },
+];
 
 export default function Dashboard() {
   const router = useRouter();
@@ -55,6 +115,10 @@ export default function Dashboard() {
   const clearLevelUpEvent = useAppStore((s) => s.clearLevelUpEvent);
   const setTheme = useAppStore((s) => s.setTheme);
   const setDecoration = useAppStore((s) => s.setDecoration);
+  const tutorialStep = useAppStore((s) => s.tutorialStep);
+  const startTutorial = useAppStore((s) => s.startTutorial);
+  const advanceTutorial = useAppStore((s) => s.advanceTutorial);
+  const finishTutorial = useAppStore((s) => s.finishTutorial);
 
   const completeTask = useAppStore((s) => s.completeTask);
   const uncompleteTask = useAppStore((s) => s.uncompleteTask);
@@ -85,6 +149,75 @@ export default function Dashboard() {
   // absolutely over the level circle and removes itself after 1.6s.
   const [xpToasts, setXpToasts] = useState<Array<{ id: number; amount: number }>>([]);
 
+  // ---- First-run walkthrough plumbing ----
+  const rootRef = useRef<View>(null);
+  const addTaskRef = useRef<View>(null);
+  const firstTaskRef = useRef<View>(null);
+  const streakRef = useRef<View>(null);
+  const habitsRef = useRef<View>(null);
+  const avatarRef = useRef<View>(null);
+  const [tutorialHole, setTutorialHole] = useState<HoleRect | null>(null);
+
+  // Offer the walkthrough once, right after a fresh account finishes
+  // onboarding (the pending flag is set there).
+  useEffect(() => {
+    if (!profile?.id) return;
+    (async () => {
+      try {
+        const [pending, done] = await Promise.all([
+          AsyncStorage.getItem(TUTORIAL_PENDING_KEY),
+          AsyncStorage.getItem(TUTORIAL_DONE_KEY),
+        ]);
+        if (pending === 'true' && done !== 'true') startTutorial();
+      } catch {
+        // non-fatal
+      }
+    })();
+  }, [profile?.id, startTutorial]);
+
+  // Measure the active step's target into overlay coordinates. Redone
+  // when the step changes and when the first task appears (step 2's
+  // target doesn't exist until the user adds one). The small delay
+  // lets layout settle after navigation back from the add screen.
+  useEffect(() => {
+    if (tutorialStep == null) {
+      setTutorialHole(null);
+      return;
+    }
+    const step = TUTORIAL_STEPS[tutorialStep];
+    if (!step || !step.target) {
+      setTutorialHole(null);
+      return;
+    }
+    const refs: Record<TutorialTarget, React.RefObject<View | null>> = {
+      addTask:   addTaskRef,
+      firstTask: firstTaskRef,
+      streak:    streakRef,
+      habits:    habitsRef,
+      avatar:    avatarRef,
+    };
+    const timer = setTimeout(() => {
+      const target = refs[step.target as TutorialTarget].current;
+      const root = rootRef.current;
+      if (!target || !root) {
+        setTutorialHole(null);
+        return;
+      }
+      root.measureInWindow((rx, ry) => {
+        target.measureInWindow((x, y, w, h) => {
+          setTutorialHole({ x: x - rx, y: y - ry, w, h });
+        });
+      });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [tutorialStep, tasks.length]);
+
+  function onTutorialNext() {
+    if (tutorialStep == null) return;
+    if (tutorialStep >= TUTORIAL_STEPS.length - 1) void finishTutorial();
+    else advanceTutorial();
+  }
+
   if (!profile) {
     return <View style={[styles.root, { backgroundColor: theme.colors.background }]} />;
   }
@@ -99,6 +232,8 @@ export default function Dashboard() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     play('complete');
     const { awarded } = await completeTask(task.id);
+    // Forced-tap step 2 ("complete your first task") advances here.
+    if (useAppStore.getState().tutorialStep === 2) advanceTutorial();
     if (awarded > 0) {
       const id = Date.now() + Math.random();
       setXpToasts((prev) => [...prev, { id, amount: awarded }]);
@@ -196,7 +331,11 @@ export default function Dashboard() {
   }
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      ref={rootRef}
+      collapsable={false}
+      style={[styles.root, { backgroundColor: theme.colors.background }]}
+    >
       {/* Background decoration sits behind the scroll content; pointer
           events disabled in DecorationLayer so touches pass through. */}
       <DecorationLayer
@@ -205,10 +344,14 @@ export default function Dashboard() {
         mutedColor={theme.colors.muted}
         primaryColor={theme.colors.primary}
       />
-      <NestableScrollContainer contentContainerStyle={styles.scroll}>
+      <NestableScrollContainer
+        contentContainerStyle={styles.scroll}
+        scrollEnabled={tutorialStep == null}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Pressable
+            ref={avatarRef}
             accessibilityRole="button"
             onPress={() => router.push('/settings')}
             hitSlop={10}
@@ -237,7 +380,7 @@ export default function Dashboard() {
             <Text style={[styles.brand, { color: theme.colors.primary, fontFamily: theme.fonts.heavy }]}>YourLevel</Text>
           </View>
 
-          <View style={styles.headerRight}>
+          <View ref={streakRef} collapsable={false} style={styles.headerRight}>
             <StreakDisplay
               streak={profile.day_streak}
               secondChanceActive={profile.second_chance_active}
@@ -294,6 +437,7 @@ export default function Dashboard() {
           empty={tasks.length === 0 ? 'No tasks today. Tap + to add one.' : undefined}
           emptyColor={theme.colors.muted}
           fontFamily={theme.fonts.bold}
+          addBtnRef={addTaskRef}
         >
           <NestableDraggableFlatList
             data={tasks}
@@ -302,6 +446,7 @@ export default function Dashboard() {
             onDragEnd={({ data }) => void reorderTasks(data.map((t) => t.id))}
             renderItem={({ item, drag, isActive }: RenderItemParams<Task>) => (
               <Pressable
+                ref={item.id === tasks[0]?.id ? firstTaskRef : undefined}
                 onLongPress={drag}
                 delayLongPress={250}
                 style={{ opacity: isActive ? 0.85 : 1, marginBottom: 8 }}
@@ -329,6 +474,7 @@ export default function Dashboard() {
           empty={badHabits.length === 0 ? 'No bad habits tracked. Tap + to add one.' : undefined}
           emptyColor={theme.colors.muted}
           fontFamily={theme.fonts.bold}
+          headerRef={habitsRef}
         >
           <NestableDraggableFlatList
             data={badHabits}
@@ -394,6 +540,21 @@ export default function Dashboard() {
           ) : null}
         </Pressable>
       </Modal>
+
+      {/* First-run walkthrough overlay */}
+      {tutorialStep != null && TUTORIAL_STEPS[tutorialStep] ? (
+        <TutorialOverlay
+          hole={TUTORIAL_STEPS[tutorialStep].target ? tutorialHole : null}
+          title={TUTORIAL_STEPS[tutorialStep].title}
+          body={TUTORIAL_STEPS[tutorialStep].body}
+          nextLabel={TUTORIAL_STEPS[tutorialStep].next}
+          stepIndex={tutorialStep}
+          stepCount={TUTORIAL_STEPS.length}
+          theme={theme}
+          onNext={TUTORIAL_STEPS[tutorialStep].next ? onTutorialNext : undefined}
+          onSkip={() => void finishTutorial()}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -406,15 +567,18 @@ function Section(props: {
   empty?:     string;
   emptyColor: string;
   fontFamily?: string;
+  headerRef?: React.Ref<View>;
+  addBtnRef?: React.Ref<View>;
   children:   React.ReactNode;
 }) {
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
+      <View ref={props.headerRef} collapsable={false} style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: props.accent, fontFamily: props.fontFamily }]}>
           {props.title}
         </Text>
         <Pressable
+          ref={props.addBtnRef}
           onPress={props.onAdd}
           hitSlop={10}
           style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.5 : 1, borderColor: props.accent }]}

@@ -23,20 +23,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
-import { useAppStore } from '@/store/useAppStore';
+import { TUTORIAL_PENDING_KEY, useAppStore } from '@/store/useAppStore';
 
-type StepId =
-  | 'welcome'
-  | 'xp'
-  | 'streaks'
-  | 'habits'
-  | 'levels'
-  | 'addtasks'
-  | 'unlocks'
-  | 'name'
-  | 'time';
+// Kept intentionally short: welcome -> name -> day-start. The game
+// rules are taught by the interactive walkthrough on the dashboard
+// (see TUTORIAL_STEPS in app/(tabs)/index.tsx), which starts right
+// after onboarding via the TUTORIAL_PENDING_KEY flag.
+type StepId = 'welcome' | 'name' | 'time';
 
 const SLIDES: Record<
   Exclude<StepId, 'name' | 'time'>,
@@ -45,51 +42,11 @@ const SLIDES: Record<
   welcome: {
     icon: 'sparkles',
     title: 'Welcome to YourLevel',
-    body: 'Turn self-improvement into a game. Earn XP, level up, and unlock new looks by building good habits and dropping bad ones.',
-  },
-  xp: {
-    icon: 'trending-up',
-    title: 'How tasks earn XP',
-    body: 'Add up to 10 tasks a day. Your first 3 are worth 100 XP each. Add more and the 300 daily cap splits evenly across them — so 6 tasks = 50 XP each. You can earn a max of 300 XP a day from tasks.',
-  },
-  streaks: {
-    icon: 'flame',
-    title: 'Streaks & bonuses',
-    body: 'Finish ALL your tasks with zero bad habits to grow your streak by 1. Every day of your streak adds +5 bonus XP, and it stacks. Reach a 20-day streak and you earn a Second Chance — one missed day won’t reset you.',
-  },
-  habits: {
-    icon: 'remove-circle',
-    title: 'Bad habits cost you',
-    body: 'Track the habits you want to quit. Logging one costs 150 XP and breaks your streak for the day — so you think twice. Each habit only penalizes once per day.',
-  },
-  levels: {
-    icon: 'ribbon',
-    title: 'Leveling up',
-    body: 'Levels 1–5 cost 500 XP each. 5–20 cost 1,000. 20–100 cost 2,000. Past 100 it’s 5,000 each. Higher levels earn you new titles — Beginner, Warrior, Legend, and beyond.',
-  },
-  addtasks: {
-    icon: 'add-circle',
-    title: 'Adding tasks',
-    body: 'On your dashboard, tap the + next to "Tasks". Type a new task or pick a recent one, then add it. Tap the checkbox to complete it and watch the XP roll in. Long-press to drag and reorder.',
-  },
-  unlocks: {
-    icon: 'color-palette',
-    title: 'Unlock new looks',
-    body: 'Leveling up unlocks themes (fonts + colors) and background decorations at milestones — Cyberpunk, Solo Leveling, Vampire and more. Switch anytime in Settings → Fonts and Decorations. Some are Pro.',
+    body: 'Turn self-improvement into a game. Earn XP, level up, and unlock new looks by building good habits and dropping bad ones. We’ll show you around in a minute.',
   },
 };
 
-const ORDER: StepId[] = [
-  'welcome',
-  'xp',
-  'streaks',
-  'habits',
-  'levels',
-  'addtasks',
-  'unlocks',
-  'name',
-  'time',
-];
+const ORDER: StepId[] = ['welcome', 'name', 'time'];
 
 export default function Onboarding() {
   const theme = useAppStore((s) => s.theme);
@@ -134,6 +91,9 @@ export default function Onboarding() {
         .select('*')
         .single<Profile>();
       if (error || !data) throw error ?? new Error('Could not save');
+      // Queue the interactive dashboard walkthrough for this fresh
+      // account. The dashboard picks the flag up on mount.
+      await AsyncStorage.setItem(TUTORIAL_PENDING_KEY, 'true').catch(() => {});
       setProfile(data);
       // Root layout routes into the app once onboarding_completed flips.
     } catch (err) {
