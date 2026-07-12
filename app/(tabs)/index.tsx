@@ -19,10 +19,12 @@ import {
   Image,
   Modal,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   NestableDraggableFlatList,
@@ -35,6 +37,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BadHabitItem } from '@/components/BadHabitItem';
 import { Confetti } from '@/components/Confetti';
 import { DecorationLayer } from '@/components/DecorationLayer';
+import { ShareCard } from '@/components/ShareCard';
 import { TutorialOverlay, type HoleRect } from '@/components/TutorialOverlay';
 import { LevelCircle } from '@/components/LevelCircle';
 import { StreakDisplay } from '@/components/StreakDisplay';
@@ -43,6 +46,7 @@ import { getTheme } from '@/constants/themes';
 import { getDecoration } from '@/constants/decorations';
 import { QUESTS } from '@/constants/quests';
 import { play } from '@/lib/sound';
+import { STREAK_MILESTONES } from '@/lib/streak';
 import { supabase } from '@/lib/supabase';
 import { getNextUnlock, getPreviousUnlockLevel } from '@/lib/unlocks';
 import { calculateTotalXpForLevel, DAILY_TASK_XP_CAP, getXpProgress } from '@/lib/xp';
@@ -119,6 +123,7 @@ export default function Dashboard() {
   const setTheme = useAppStore((s) => s.setTheme);
   const setDecoration = useAppStore((s) => s.setDecoration);
   const claimQuest = useAppStore((s) => s.claimQuest);
+  const ackStreakMilestone = useAppStore((s) => s.ackStreakMilestone);
   const tutorialStep = useAppStore((s) => s.tutorialStep);
   const startTutorial = useAppStore((s) => s.startTutorial);
   const advanceTutorial = useAppStore((s) => s.advanceTutorial);
@@ -183,6 +188,17 @@ export default function Dashboard() {
     setTimeout(() => {
       setXpToasts((prev) => prev.filter((t) => t.id !== id));
     }, 1600);
+  }
+
+  // Off-screen themed card captured into the iOS share sheet.
+  const shareCardRef = useRef<View>(null);
+  async function shareProgress() {
+    try {
+      const uri = await captureRef(shareCardRef, { format: 'png', quality: 1 });
+      await Share.share({ url: uri });
+    } catch (err) {
+      console.warn('[dashboard] share failed', err);
+    }
   }
 
   async function onClaimQuest(questId: string) {
@@ -445,6 +461,7 @@ export default function Dashboard() {
                 secondChanceActive={profile.second_chance_active}
                 color={theme.colors.primary}
                 warnColor={theme.colors.danger}
+                freezes={profile.streak_freezes ?? 0}
               />
               <Text style={[styles.todayChip, { color: theme.colors.primary }]}>
                 {netXpToday}/{DAILY_TASK_XP_CAP} XP today
@@ -506,6 +523,24 @@ export default function Dashboard() {
           theme={theme}
           onClaim={onClaimQuest}
         />
+
+        {/* Weekly report banner, Sundays only. */}
+        {new Date().getDay() === 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/settings/weekly-report')}
+            style={({ pressed }) => [
+              styles.reportBanner,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.accent, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Text style={styles.reportEmoji}>📊</Text>
+            <Text style={[styles.reportText, { color: theme.colors.primary }]}>
+              Your weekly report is ready
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.accent} />
+          </Pressable>
+        ) : null}
 
         {/* Tasks */}
         <Section
@@ -623,6 +658,7 @@ export default function Dashboard() {
                       clearLevelUpEvent();
                     }}
                     onDismiss={clearLevelUpEvent}
+                    onShare={shareProgress}
                   />
                 ) : levelUpEvent ? (
                   <LevelUpCard
@@ -636,6 +672,7 @@ export default function Dashboard() {
                       void setDecoration(id);
                       clearLevelUpEvent();
                     }}
+                    onShare={shareProgress}
                   />
                 ) : null}
               </>
@@ -643,6 +680,45 @@ export default function Dashboard() {
           })()}
         </Pressable>
       </Modal>
+
+      {/* Streak milestone celebration (suppressed while a level-up
+          modal is showing so they never stack). */}
+      <Modal
+        transparent
+        visible={profile.pending_streak_milestone != null && levelUpEvent == null}
+        animationType="fade"
+        onRequestClose={() => void ackStreakMilestone()}
+      >
+        <Pressable style={styles.modalRoot} onPress={() => void ackStreakMilestone()}>
+          <Confetti
+            colors={[
+              theme.colors.accent,
+              theme.colors.success,
+              theme.colors.primary,
+              theme.colors.secondary,
+              theme.colors.danger,
+            ]}
+          />
+          {profile.pending_streak_milestone != null ? (
+            <MilestoneCard
+              days={profile.pending_streak_milestone}
+              theme={theme}
+              onShare={shareProgress}
+            />
+          ) : null}
+        </Pressable>
+      </Modal>
+
+      {/* Hidden card for share captures (never visible on screen). */}
+      <View style={styles.shareHidden} pointerEvents="none">
+        <ShareCard
+          ref={shareCardRef}
+          level={progress.level}
+          levelName={progress.levelName}
+          streak={profile.day_streak}
+          theme={theme}
+        />
+      </View>
 
       {/* First-run walkthrough overlay */}
       {tutorialStep != null && TUTORIAL_STEPS[tutorialStep] ? (
@@ -829,6 +905,58 @@ function QuestsCard({
   );
 }
 
+/** Streak-milestone celebration card (7 / 30 / 100 days). */
+function MilestoneCard({
+  days,
+  theme,
+  onShare,
+}: {
+  days:    number;
+  theme:   ReturnType<typeof useAppStore.getState>['theme'];
+  onShare: () => void;
+}) {
+  const pop = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    play('levelup');
+    Animated.spring(pop, { toValue: 1, friction: 5, tension: 60, useNativeDriver: true }).start();
+  }, [pop]);
+  const scale = pop.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
+  const bonus = STREAK_MILESTONES[days] ?? 0;
+  const c = theme.colors;
+  return (
+    <Animated.View
+      style={[styles.modalCard, { backgroundColor: c.surface, opacity: pop, transform: [{ scale }] }]}
+    >
+      <Text style={styles.milestoneFlame}>🔥</Text>
+      <Text style={[styles.modalLevel, { color: c.primary, fontFamily: theme.fonts.heavy, fontSize: 44 }]}>
+        {days}-DAY STREAK
+      </Text>
+      {bonus > 0 ? (
+        <Text style={[styles.modalName, { color: c.accent, fontFamily: theme.fonts.bold }]}>
+          +{bonus} XP BONUS EARNED
+        </Text>
+      ) : null}
+      {days % 7 === 0 ? (
+        <Text style={[styles.milestoneNote, { color: c.secondary }]}>
+          ❄️ Streak Freeze banked — a missed day won't break you.
+        </Text>
+      ) : null}
+      <Pressable
+        onPress={onShare}
+        style={({ pressed }) => [
+          styles.milestoneShare,
+          { borderColor: c.accent, opacity: pressed ? 0.6 : 1 },
+        ]}
+      >
+        <Ionicons name="share-outline" size={15} color={c.accent} />
+        <Text style={[styles.milestoneShareText, { color: c.accent }]}>Share</Text>
+      </Pressable>
+      <Text style={[styles.modalHint, { color: c.muted }]}>tap anywhere to continue</Text>
+    </Animated.View>
+  );
+}
+
 /** Floating "+N XP" indicator. Mounts -> animates up + fades out. */
 function XpToast({ amount, color }: { amount: number; color: string }) {
   const t = useRef(new Animated.Value(0)).current;
@@ -864,11 +992,13 @@ function WorldEntry({
   worldTheme,
   onEnter,
   onDismiss,
+  onShare,
 }: {
   event:      LevelUpEvent;
   worldTheme: ReturnType<typeof getTheme>;
   onEnter:    () => void;
   onDismiss:  () => void;
+  onShare:    () => void;
 }) {
   const pop = useRef(new Animated.Value(0)).current;
 
@@ -918,6 +1048,13 @@ function WorldEntry({
           >
             <Text style={[styles.worldKeepText, { color: c.primary }]}>Keep my current look</Text>
           </Pressable>
+          <Pressable
+            onPress={onShare}
+            style={({ pressed }) => [styles.worldShare, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Ionicons name="share-outline" size={14} color={c.secondary} />
+            <Text style={[styles.worldShareText, { color: c.secondary }]}>Share this moment</Text>
+          </Pressable>
         </View>
       </Animated.View>
     </View>
@@ -935,11 +1072,13 @@ function LevelUpCard({
   theme,
   onApplyTheme,
   onApplyDecoration,
+  onShare,
 }: {
   event:              LevelUpEvent;
   theme:              ReturnType<typeof useAppStore.getState>['theme'];
   onApplyTheme:       (id: Parameters<typeof getTheme>[0]) => void;
   onApplyDecoration:  (id: Parameters<typeof getDecoration>[0]) => void;
+  onShare:            () => void;
 }) {
   const colors = theme.colors;
   const fontFamily = theme.fonts.heavy;
@@ -1081,6 +1220,16 @@ function LevelUpCard({
           </View>
         ) : null}
 
+        <Pressable
+          onPress={onShare}
+          style={({ pressed }) => [
+            styles.milestoneShare,
+            { borderColor: colors.accent, opacity: pressed ? 0.6 : 1 },
+          ]}
+        >
+          <Ionicons name="share-outline" size={15} color={colors.accent} />
+          <Text style={[styles.milestoneShareText, { color: colors.accent }]}>Share</Text>
+        </Pressable>
         <Text style={[styles.modalHint, { color: colors.muted }]}>tap anywhere to continue</Text>
       </Animated.View>
     </View>
@@ -1129,6 +1278,9 @@ const styles = StyleSheet.create({
   sectionBody:    { gap: 8 },
   empty:          { fontSize: 13, fontStyle: 'italic', paddingVertical: 8 },
   footer:         { fontSize: 12, textAlign: 'center', marginTop: 8 },
+  reportBanner:   { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, borderWidth: 1.5, paddingHorizontal: 14, paddingVertical: 11 },
+  reportEmoji:    { fontSize: 16 },
+  reportText:     { flex: 1, fontSize: 14, fontWeight: '700' },
   teaser:         { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, gap: 7 },
   teaserTop:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   teaserKicker:   { fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
@@ -1163,6 +1315,13 @@ const styles = StyleSheet.create({
   worldEnterText: { fontSize: 16, fontWeight: '800' },
   worldKeep:      { height: 46, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   worldKeepText:  { fontSize: 14, fontWeight: '600' },
+  worldShare:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40 },
+  worldShareText: { fontSize: 13, fontWeight: '700' },
+  shareHidden:    { position: 'absolute', left: -9999, top: 0 },
+  milestoneFlame: { fontSize: 44 },
+  milestoneNote:  { fontSize: 13, textAlign: 'center', marginTop: 6 },
+  milestoneShare: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5, borderRadius: 10, paddingHorizontal: 16, height: 36, marginTop: 14 },
+  milestoneShareText: { fontSize: 13, fontWeight: '800' },
   levelUpWrap:    { alignItems: 'center', justifyContent: 'center' },
   levelUpGlow:    { position: 'absolute', width: 320, height: 320, borderRadius: 160 },
   raysWrap:       { position: 'absolute', width: 1, height: 1, alignItems: 'center', justifyContent: 'center' },

@@ -35,6 +35,10 @@ export interface Profile {
   bad_habits_penalized_today:      string[];
   /** First-week quest ids already claimed (see constants/quests.ts). */
   quests_claimed:                  string[];
+  /** Banked streak freezes (earned every 7 clean days, max 2). */
+  streak_freezes:                  number;
+  /** Streak milestone (7/30/100) reached at last reset, awaiting its celebration. */
+  pending_streak_milestone:        number | null;
 }
 
 export interface Task {
@@ -100,4 +104,5 @@ export interface StreakState {
   highest_streak:                  number;
   second_chance_active:            boolean;
   second_chance_days_remaining:    number;
+  streak_freezes:                  number;
 }

@@ -107,6 +107,8 @@ interface AppStore {
   clearLevelUpEvent:   () => void;
   /** Claim a met first-week quest; returns the reward XP (0 = not claimable). */
   claimQuest:          (questId: string) => Promise<number>;
+  /** Dismiss the pending streak-milestone celebration. */
+  ackStreakMilestone:  () => Promise<void>;
 
   // ---- interactive tutorial (first-run walkthrough on the dashboard) ----
   /** null = not running; otherwise index into the dashboard's step list. */
@@ -825,6 +827,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
     return quest.rewardXp;
   },
 
+  async ackStreakMilestone() {
+    const { profile } = get();
+    if (!profile || profile.pending_streak_milestone == null) return;
+    set({ profile: { ...profile, pending_streak_milestone: null } });
+    try {
+      await supabase
+        .from('profiles')
+        .update({ pending_streak_milestone: null })
+        .eq('id', profile.id);
+    } catch (err) {
+      console.warn('[useAppStore] ackStreakMilestone failed', err);
+    }
+  },
+
   tutorialStep: null,
 
   startTutorial() {
@@ -877,6 +893,7 @@ async function persistProfileScore(userId: string, p: Profile): Promise<void> {
       highest_streak:                 p.highest_streak,
       second_chance_active:           p.second_chance_active,
       second_chance_days_remaining:   p.second_chance_days_remaining,
+      streak_freezes:                 p.streak_freezes ?? 0,
       daily_task_xp_earned:           p.daily_task_xp_earned,
       daily_bad_habit_xp_lost:        p.daily_bad_habit_xp_lost,
       bad_habits_penalized_today:     p.bad_habits_penalized_today,

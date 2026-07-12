@@ -17,7 +17,7 @@ import * as TaskManager from 'expo-task-manager';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { BadHabit, Profile, Task } from './types';
-import { applyDayComplete, applyDayMiss } from './streak';
+import { applyDayComplete, applyDayMiss, STREAK_MILESTONES } from './streak';
 import { applyXpDelta, dailyTaskXpAwarded, streakBonusXp } from './xp';
 
 // ---------------------------------------------------------------------------
@@ -163,6 +163,8 @@ export async function runDailyResetIfNeeded(opts: {
         highest_streak:                 closed.profile.highest_streak,
         second_chance_active:           closed.profile.second_chance_active,
         second_chance_days_remaining:   closed.profile.second_chance_days_remaining,
+        streak_freezes:                 closed.profile.streak_freezes ?? 0,
+        pending_streak_milestone:       closed.profile.pending_streak_milestone ?? null,
         daily_task_xp_earned:           0,
         daily_bad_habit_xp_lost:        0,
         bad_habits_penalized_today:     [],
@@ -209,6 +211,8 @@ export async function runDailyResetIfNeeded(opts: {
     highest_streak:                 running.highest_streak,
     second_chance_active:           running.second_chance_active,
     second_chance_days_remaining:   running.second_chance_days_remaining,
+    streak_freezes:                 running.streak_freezes ?? 0,
+    pending_streak_milestone:       running.pending_streak_milestone ?? null,
     last_active_date:               today,
     // Reset the daily caps now that a new day has started.
     daily_task_xp_earned:           0,
@@ -259,8 +263,23 @@ async function closeOutDay(opts: {
   if (summary.successful) {
     const streakNext = applyDayComplete(p);
     bonus = streakBonusXp(streakNext.day_streak);
+    // Streak milestone (7/30/100): grant the bonus XP now, queue the
+    // celebration for the next dashboard open.
+    const milestoneXp = STREAK_MILESTONES[streakNext.day_streak];
+    let pendingMilestone = p.pending_streak_milestone ?? null;
+    if (milestoneXp) {
+      bonus += milestoneXp;
+      pendingMilestone = streakNext.day_streak;
+    }
     const xp = applyXpDelta({ total_xp: p.total_xp, level: p.level, deltaXp: bonus });
-    p = { ...p, ...streakNext, total_xp: xp.total_xp, current_xp: xp.current_xp, level: xp.level };
+    p = {
+      ...p,
+      ...streakNext,
+      total_xp:                 xp.total_xp,
+      current_xp:               xp.current_xp,
+      level:                    xp.level,
+      pending_streak_milestone: pendingMilestone,
+    };
   } else {
     p = { ...p, ...applyDayMiss(p) };
   }

@@ -155,7 +155,14 @@ export default function StatsScreen() {
           <Ionicons name="chevron-back" size={26} color={theme.colors.primary} />
         </Pressable>
         <Text style={[styles.title, { color: theme.colors.primary, fontFamily: theme.fonts.bold }]}>Stats</Text>
-        <View style={styles.iconBtn} />
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/settings/weekly-report')}
+          hitSlop={10}
+          style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.5 : 1 }]}
+        >
+          <Ionicons name="calendar-outline" size={22} color={theme.colors.accent} />
+        </Pressable>
       </View>
 
       {loading ? (
