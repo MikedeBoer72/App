@@ -70,8 +70,13 @@ Phase 2 — ✅ SHIPPED 727b107: The Journey (/map). World cards in each
 theme's identity, conquered/current/next/fog states, YOU ARE HERE marker
 + progress, mystery decoration nodes, auto-scroll to player. Entry: map
 icon in dashboard header + tapping the NEXT UNLOCK teaser.
-Phase 3 (v1.1) — ⬜ streak freeze (earned), streak milestone rewards
-(7/30/100), level-up share card, weekly report.
+Phase 3 — ✅ SHIPPED d8b564d: streak freeze (earn 1/7 clean days, max 2,
+consumed before Second Chance; ❄️ on dashboard), streak milestones
+(7/30/100 -> +100/+500/+2000 XP + queued celebration via
+pending_streak_milestone), themed share card (view-shot; Share buttons on
+level-up / world-entry / milestone), weekly report (/settings/
+weekly-report; Stats header calendar icon + Sunday dashboard banner).
+MIGRATION 008 required + npm install (react-native-view-shot).
 
 ## ⚠️ NEW SINCE LAST BUILD (needs `npm install` + migration 006 + rebuild)
 
