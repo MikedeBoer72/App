@@ -46,6 +46,39 @@ export function getNextUnlock(afterLevel: number): UpcomingUnlock | null {
   return getUpcomingUnlocks(afterLevel)[0] ?? null;
 }
 
+export interface JourneyItem {
+  kind:   'world' | 'decoration';
+  id:     string;
+  name:   string;
+  level:  number;
+}
+
+/**
+ * The full journey, ascending by unlock level: every theme as a
+ * "world", every decoration as a mystery node between worlds. Ties
+ * sort worlds before decorations (the world is the destination; the
+ * decoration is loot found on the way in).
+ */
+export function getJourneyTimeline(): JourneyItem[] {
+  const worlds: JourneyItem[] = THEMES.map((t) => ({
+    kind:  'world' as const,
+    id:    t.id,
+    name:  t.name,
+    level: t.unlockLevel,
+  }));
+  const decos: JourneyItem[] = DECORATIONS
+    .filter((d) => d.id !== 'none')
+    .map((d) => ({
+      kind:  'decoration' as const,
+      id:    d.id,
+      name:  d.name,
+      level: d.unlockLevel,
+    }));
+  return [...worlds, ...decos].sort((a, b) =>
+    a.level === b.level ? (a.kind === 'world' ? -1 : 1) : a.level - b.level,
+  );
+}
+
 /**
  * The unlock level the player most recently passed (or 1). Used to
  * draw "progress between milestones" bars: you're X% of the way from

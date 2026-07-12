@@ -427,16 +427,29 @@ export default function Dashboard() {
             <Text style={[styles.brand, { color: theme.colors.primary, fontFamily: theme.fonts.heavy }]}>YourLevel</Text>
           </View>
 
-          <View ref={streakRef} collapsable={false} style={styles.headerRight}>
-            <StreakDisplay
-              streak={profile.day_streak}
-              secondChanceActive={profile.second_chance_active}
-              color={theme.colors.primary}
-              warnColor={theme.colors.danger}
-            />
-            <Text style={[styles.todayChip, { color: theme.colors.primary }]}>
-              {netXpToday}/{DAILY_TASK_XP_CAP} XP today
-            </Text>
+          <View style={styles.headerRightRow}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/map')}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.mapBtn,
+                { backgroundColor: theme.colors.surface, opacity: pressed ? 0.6 : 1 },
+              ]}
+            >
+              <Ionicons name="map-outline" size={18} color={theme.colors.accent} />
+            </Pressable>
+            <View ref={streakRef} collapsable={false} style={styles.headerRight}>
+              <StreakDisplay
+                streak={profile.day_streak}
+                secondChanceActive={profile.second_chance_active}
+                color={theme.colors.primary}
+                warnColor={theme.colors.danger}
+              />
+              <Text style={[styles.todayChip, { color: theme.colors.primary }]}>
+                {netXpToday}/{DAILY_TASK_XP_CAP} XP today
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -475,13 +488,13 @@ export default function Dashboard() {
           </View>
         </View>
 
-        {/* Next-unlock teaser: permanent anticipation. */}
+        {/* Next-unlock teaser: permanent anticipation. Opens the map. */}
         <NextUnlockTeaser
           level={progress.level}
           totalXp={profile.total_xp}
           avgDailyXp={avgDailyXp}
           theme={theme}
-          onPressTheme={() => router.push('/settings/fonts')}
+          onPress={() => router.push('/map')}
         />
 
         {/* First-week quests (fresh accounts only; hides forever once
@@ -697,13 +710,13 @@ function NextUnlockTeaser({
   totalXp,
   avgDailyXp,
   theme,
-  onPressTheme,
+  onPress,
 }: {
-  level:        number;
-  totalXp:      number;
-  avgDailyXp:   number | null;
-  theme:        ReturnType<typeof useAppStore.getState>['theme'];
-  onPressTheme: () => void;
+  level:      number;
+  totalXp:    number;
+  avgDailyXp: number | null;
+  theme:      ReturnType<typeof useAppStore.getState>['theme'];
+  onPress:    () => void;
 }) {
   const next = getNextUnlock(level);
   if (!next) return null;
@@ -716,14 +729,6 @@ function NextUnlockTeaser({
   const etaDays = avgDailyXp && avgDailyXp > 0 ? Math.max(1, Math.ceil(xpLeft / avgDailyXp)) : null;
 
   const label = next.mystery ? '???' : next.name.toUpperCase();
-
-  function onPress() {
-    if (next!.mystery) {
-      Alert.alert('Mystery unlock', `Reach Level ${next!.level} to reveal it.`);
-    } else {
-      onPressTheme();
-    }
-  }
 
   return (
     <Pressable
@@ -1113,6 +1118,8 @@ const styles = StyleSheet.create({
   circleWrap:     { alignItems: 'center', gap: 12, marginVertical: 8 },
   xpRead:         { fontSize: 13, letterSpacing: 0.5 },
   brandWrap:      { position: 'absolute', left: 0, right: 0, alignItems: 'center', justifyContent: 'center', height: '100%' },
+  headerRightRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  mapBtn:         { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   headerRight:    { alignItems: 'flex-end' },
   todayChip:      { fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginTop: 6 },
   section:        { gap: 10 },
