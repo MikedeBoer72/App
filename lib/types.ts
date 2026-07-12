@@ -33,6 +33,8 @@ export interface Profile {
   daily_task_xp_earned:            number;
   daily_bad_habit_xp_lost:         number;
   bad_habits_penalized_today:      string[];
+  /** First-week quest ids already claimed (see constants/quests.ts). */
+  quests_claimed:                  string[];
 }
 
 export interface Task {

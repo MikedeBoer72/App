@@ -94,7 +94,7 @@ export async function ensureNotificationPermissions(): Promise<boolean> {
  * times after the user changes their day-start. Also persists the
  * "enabled = true" flag.
  */
-export async function enableDailyReminders(dayStartTime: string): Promise<boolean> {
+export async function enableDailyReminders(dayStartTime: string, streak = 0): Promise<boolean> {
   const ok = await ensureNotificationPermissions();
   if (!ok) {
     await setNotificationsEnabled(false);
@@ -111,7 +111,10 @@ export async function enableDailyReminders(dayStartTime: string): Promise<boolea
       identifier: ID_SOFT,
       content: {
         title: 'YourLevel',
-        body:  "Don't forget today's tasks.",
+        body:
+          streak > 0
+            ? `🔥 Day ${streak + 1} is waiting — keep the streak alive.`
+            : "Your tasks are waiting. Grab today's XP.",
       },
       trigger: {
         type:   Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -123,7 +126,10 @@ export async function enableDailyReminders(dayStartTime: string): Promise<boolea
       identifier: ID_URGENT,
       content: {
         title: "Don't lose your streak",
-        body:  "Finish today's tasks soon — your day resets in a few hours.",
+        body:
+          streak > 0
+            ? `${streak}-day streak on the line — finish your tasks before the day resets.`
+            : "Day resets in a few hours — last chance for today's XP.",
       },
       trigger: {
         type:   Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -163,7 +169,7 @@ export async function disableDailyReminders(): Promise<void> {
  * Called whenever day_start_time changes. If notifications were
  * enabled, reschedules to the new times. No-op otherwise.
  */
-export async function syncRemindersToDayStart(dayStartTime: string): Promise<void> {
+export async function syncRemindersToDayStart(dayStartTime: string, streak = 0): Promise<void> {
   if (!(await getNotificationsEnabled())) return;
-  await enableDailyReminders(dayStartTime);
+  await enableDailyReminders(dayStartTime, streak);
 }

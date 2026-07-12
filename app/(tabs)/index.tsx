@@ -41,8 +41,11 @@ import { StreakDisplay } from '@/components/StreakDisplay';
 import { TaskItem } from '@/components/TaskItem';
 import { getTheme } from '@/constants/themes';
 import { getDecoration } from '@/constants/decorations';
+import { QUESTS } from '@/constants/quests';
 import { play } from '@/lib/sound';
-import { DAILY_TASK_XP_CAP, getXpProgress } from '@/lib/xp';
+import { supabase } from '@/lib/supabase';
+import { getNextUnlock, getPreviousUnlockLevel } from '@/lib/unlocks';
+import { calculateTotalXpForLevel, DAILY_TASK_XP_CAP, getXpProgress } from '@/lib/xp';
 import {
   TUTORIAL_DONE_KEY,
   TUTORIAL_PENDING_KEY,
@@ -115,6 +118,7 @@ export default function Dashboard() {
   const clearLevelUpEvent = useAppStore((s) => s.clearLevelUpEvent);
   const setTheme = useAppStore((s) => s.setTheme);
   const setDecoration = useAppStore((s) => s.setDecoration);
+  const claimQuest = useAppStore((s) => s.claimQuest);
   const tutorialStep = useAppStore((s) => s.tutorialStep);
   const startTutorial = useAppStore((s) => s.startTutorial);
   const advanceTutorial = useAppStore((s) => s.advanceTutorial);
@@ -148,6 +152,47 @@ export default function Dashboard() {
   // Floating "+XP" toasts. Pushed by onToggleTask; each renders
   // absolutely over the level circle and removes itself after 1.6s.
   const [xpToasts, setXpToasts] = useState<Array<{ id: number; amount: number }>>([]);
+
+  // Average daily XP over the last 14 logged days, for the "at your
+  // pace" unlock ETA. Needs >= 3 days of history to say anything.
+  const [avgDailyXp, setAvgDailyXp] = useState<number | null>(null);
+  useEffect(() => {
+    const uid = profile?.id;
+    if (!uid) return;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('daily_logs')
+          .select('xp_earned')
+          .eq('user_id', uid)
+          .order('date', { ascending: false })
+          .limit(14);
+        if (data && data.length >= 3) {
+          const sum = data.reduce((s, r) => s + Math.max(0, r.xp_earned ?? 0), 0);
+          setAvgDailyXp(sum / data.length);
+        }
+      } catch {
+        // ETA is decorative; stay silent
+      }
+    })();
+  }, [profile?.id]);
+
+  function pushXpToast(amount: number) {
+    const id = Date.now() + Math.random();
+    setXpToasts((prev) => [...prev, { id, amount }]);
+    setTimeout(() => {
+      setXpToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 1600);
+  }
+
+  async function onClaimQuest(questId: string) {
+    const reward = await claimQuest(questId);
+    if (reward > 0) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      play('unlock');
+      pushXpToast(reward);
+    }
+  }
 
   // ---- First-run walkthrough plumbing ----
   const rootRef = useRef<View>(null);
@@ -242,13 +287,7 @@ export default function Dashboard() {
     const { awarded } = await completeTask(task.id);
     // Forced-tap step 2 ("complete your first task") advances here.
     if (useAppStore.getState().tutorialStep === 2) advanceTutorial();
-    if (awarded > 0) {
-      const id = Date.now() + Math.random();
-      setXpToasts((prev) => [...prev, { id, amount: awarded }]);
-      setTimeout(() => {
-        setXpToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 1600);
-    }
+    if (awarded > 0) pushXpToast(awarded);
   }
 
   function onOpenTaskMenu(task: Task) {
@@ -436,6 +475,25 @@ export default function Dashboard() {
           </View>
         </View>
 
+        {/* Next-unlock teaser: permanent anticipation. */}
+        <NextUnlockTeaser
+          level={progress.level}
+          totalXp={profile.total_xp}
+          avgDailyXp={avgDailyXp}
+          theme={theme}
+          onPressTheme={() => router.push('/settings/fonts')}
+        />
+
+        {/* First-week quests (fresh accounts only; hides forever once
+            all are claimed). */}
+        <QuestsCard
+          profile={profile}
+          tasks={tasks}
+          badHabits={badHabits}
+          theme={theme}
+          onClaim={onClaimQuest}
+        />
+
         {/* Tasks */}
         <Section
           title="Tasks"
@@ -523,29 +581,53 @@ export default function Dashboard() {
         onRequestClose={clearLevelUpEvent}
       >
         <Pressable style={styles.modalRoot} onPress={clearLevelUpEvent}>
-          <Confetti
-            colors={[
-              theme.colors.accent,
-              theme.colors.success,
-              theme.colors.primary,
-              theme.colors.secondary,
-              theme.colors.danger,
-            ]}
-          />
-          {levelUpEvent ? (
-            <LevelUpCard
-              event={levelUpEvent}
-              theme={theme}
-              onApplyTheme={(id) => {
-                void setTheme(id);
-                clearLevelUpEvent();
-              }}
-              onApplyDecoration={(id) => {
-                void setDecoration(id);
-                clearLevelUpEvent();
-              }}
-            />
-          ) : null}
+          {(() => {
+            // World unlocked -> full-screen takeover in the NEW theme's
+            // identity, confetti in ITS palette. Otherwise the regular
+            // celebration card in the current theme.
+            const worldTheme =
+              levelUpEvent && levelUpEvent.unlockedThemes.length > 0
+                ? getTheme(levelUpEvent.unlockedThemes[levelUpEvent.unlockedThemes.length - 1]!)
+                : null;
+            const palette = worldTheme ?? theme;
+            return (
+              <>
+                <Confetti
+                  colors={[
+                    palette.colors.accent,
+                    palette.colors.success,
+                    palette.colors.primary,
+                    palette.colors.secondary,
+                    palette.colors.danger,
+                  ]}
+                />
+                {levelUpEvent && worldTheme ? (
+                  <WorldEntry
+                    event={levelUpEvent}
+                    worldTheme={worldTheme}
+                    onEnter={() => {
+                      void setTheme(worldTheme.id);
+                      clearLevelUpEvent();
+                    }}
+                    onDismiss={clearLevelUpEvent}
+                  />
+                ) : levelUpEvent ? (
+                  <LevelUpCard
+                    event={levelUpEvent}
+                    theme={theme}
+                    onApplyTheme={(id) => {
+                      void setTheme(id);
+                      clearLevelUpEvent();
+                    }}
+                    onApplyDecoration={(id) => {
+                      void setDecoration(id);
+                      clearLevelUpEvent();
+                    }}
+                  />
+                ) : null}
+              </>
+            );
+          })()}
         </Pressable>
       </Modal>
 
@@ -605,6 +687,143 @@ function Section(props: {
   );
 }
 
+/**
+ * "NEXT UNLOCK" strip: what's coming, how far, and an ETA at the
+ * user's real pace. Themes are named (hype), decorations stay "???"
+ * (mystery). Null once every unlock is owned.
+ */
+function NextUnlockTeaser({
+  level,
+  totalXp,
+  avgDailyXp,
+  theme,
+  onPressTheme,
+}: {
+  level:        number;
+  totalXp:      number;
+  avgDailyXp:   number | null;
+  theme:        ReturnType<typeof useAppStore.getState>['theme'];
+  onPressTheme: () => void;
+}) {
+  const next = getNextUnlock(level);
+  if (!next) return null;
+
+  const prev = getPreviousUnlockLevel(level);
+  const span = Math.max(1, next.level - prev);
+  const frac = Math.min(1, Math.max(0, (level - prev) / span));
+  const levelsLeft = next.level - level;
+  const xpLeft = Math.max(0, calculateTotalXpForLevel(next.level) - totalXp);
+  const etaDays = avgDailyXp && avgDailyXp > 0 ? Math.max(1, Math.ceil(xpLeft / avgDailyXp)) : null;
+
+  const label = next.mystery ? '???' : next.name.toUpperCase();
+
+  function onPress() {
+    if (next!.mystery) {
+      Alert.alert('Mystery unlock', `Reach Level ${next!.level} to reveal it.`);
+    } else {
+      onPressTheme();
+    }
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.teaser,
+        { backgroundColor: theme.colors.surface, opacity: pressed ? 0.7 : 1 },
+      ]}
+    >
+      <View style={styles.teaserTop}>
+        <Text style={[styles.teaserKicker, { color: theme.colors.secondary }]}>NEXT UNLOCK · LV {next.level}</Text>
+        <Text style={[styles.teaserName, { color: theme.colors.accent, fontFamily: theme.fonts.bold }]} numberOfLines={1}>
+          {next.kind === 'theme' ? '🌍 ' : '✨ '}{label}
+        </Text>
+      </View>
+      <View style={[styles.teaserTrack, { backgroundColor: theme.colors.muted }]}>
+        <View
+          style={[
+            styles.teaserFill,
+            { backgroundColor: theme.colors.accent, width: `${Math.round(frac * 100)}%` },
+          ]}
+        />
+      </View>
+      <Text style={[styles.teaserSub, { color: theme.colors.secondary }]}>
+        {levelsLeft} level{levelsLeft === 1 ? '' : 's'} to go
+        {etaDays != null ? ` · ~${etaDays} day${etaDays === 1 ? '' : 's'} at your pace` : ''}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** First-week quest ladder card. Shows up to 3 unclaimed quests. */
+function QuestsCard({
+  profile,
+  tasks,
+  badHabits,
+  theme,
+  onClaim,
+}: {
+  profile:   NonNullable<ReturnType<typeof useAppStore.getState>['profile']>;
+  tasks:     Task[];
+  badHabits: BadHabit[];
+  theme:     ReturnType<typeof useAppStore.getState>['theme'];
+  onClaim:   (questId: string) => void;
+}) {
+  const claimed = profile.quests_claimed ?? [];
+  const unclaimed = QUESTS.filter((q) => !claimed.includes(q.id));
+  if (unclaimed.length === 0) return null;
+  const visible = unclaimed.slice(0, 3);
+  const state = { profile, tasks, badHabits };
+
+  return (
+    <View style={[styles.quests, { backgroundColor: theme.colors.surface }]}>
+      <View style={styles.questsHeader}>
+        <Text style={[styles.questsTitle, { color: theme.colors.primary, fontFamily: theme.fonts.bold }]}>
+          FIRST WEEK QUESTS
+        </Text>
+        <Text style={[styles.questsCount, { color: theme.colors.secondary }]}>
+          {claimed.length}/{QUESTS.length}
+        </Text>
+      </View>
+      {visible.map((q, i) => {
+        const met = q.isMet(state);
+        return (
+          <View
+            key={q.id}
+            style={[
+              styles.questRow,
+              i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.muted },
+            ]}
+          >
+            <View style={styles.questText}>
+              <Text style={[styles.questName, { color: met ? theme.colors.primary : theme.colors.secondary }]}>
+                {q.title}
+              </Text>
+              <Text style={[styles.questHint, { color: theme.colors.muted }]} numberOfLines={1}>
+                {met ? `+${q.rewardXp} XP ready!` : q.hint}
+              </Text>
+            </View>
+            {met ? (
+              <Pressable
+                onPress={() => onClaim(q.id)}
+                style={({ pressed }) => [
+                  styles.questClaim,
+                  { backgroundColor: theme.colors.accent, opacity: pressed ? 0.7 : 1 },
+                ]}
+              >
+                <Text style={[styles.questClaimText, { color: theme.colors.background }]}>Claim</Text>
+              </Pressable>
+            ) : (
+              <Text style={[styles.questReward, { color: theme.colors.muted }]}>+{q.rewardXp}</Text>
+            )}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 /** Floating "+N XP" indicator. Mounts -> animates up + fades out. */
 function XpToast({ amount, color }: { amount: number; color: string }) {
   const t = useRef(new Animated.Value(0)).current;
@@ -627,6 +846,76 @@ function XpToast({ amount, color }: { amount: number; color: string }) {
     >
       <Text style={[styles.xpToastText, { color }]}>+{amount} XP</Text>
     </Animated.View>
+  );
+}
+
+/**
+ * Full-screen "world unlocked" takeover: the screen becomes the NEW
+ * theme — its background, its font, its accent — before the user has
+ * even applied it. The strongest hype moment in the app.
+ */
+function WorldEntry({
+  event,
+  worldTheme,
+  onEnter,
+  onDismiss,
+}: {
+  event:      LevelUpEvent;
+  worldTheme: ReturnType<typeof getTheme>;
+  onEnter:    () => void;
+  onDismiss:  () => void;
+}) {
+  const pop = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    play('levelup');
+    const sparkle = setTimeout(() => play('unlock'), 550);
+    Animated.spring(pop, { toValue: 1, friction: 6, tension: 46, useNativeDriver: true }).start();
+    return () => clearTimeout(sparkle);
+  }, [pop]);
+
+  const scale = pop.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] });
+  const c = worldTheme.colors;
+  const decoNames = event.unlockedDecorations.map((id) => getDecoration(id).name);
+
+  return (
+    <View style={[StyleSheet.absoluteFill, styles.world, { backgroundColor: c.background }]}>
+      <Animated.View style={[styles.worldInner, { opacity: pop, transform: [{ scale }] }]}>
+        <Text style={[styles.worldKicker, { color: c.secondary }]}>
+          LEVEL {event.to} · WORLD UNLOCKED
+        </Text>
+        <Text style={[styles.worldName, { color: c.accent, fontFamily: worldTheme.fonts.heavy }]}>
+          {worldTheme.name.toUpperCase()}
+        </Text>
+        <Text style={[styles.worldDesc, { color: c.primary }]}>{worldTheme.description}</Text>
+        {decoNames.length > 0 ? (
+          <Text style={[styles.worldExtra, { color: c.secondary }]}>
+            Also unlocked: ✨ {decoNames.join(', ')}
+          </Text>
+        ) : null}
+
+        <View style={styles.worldButtons}>
+          <Pressable
+            onPress={onEnter}
+            style={({ pressed }) => [
+              styles.worldEnter,
+              { backgroundColor: c.accent, opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <Text style={[styles.worldEnterText, { color: c.background, fontFamily: worldTheme.fonts.bold }]}>
+              Enter {worldTheme.name}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={onDismiss}
+            style={({ pressed }) => [styles.worldKeep, { borderColor: c.muted, opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Text style={[styles.worldKeepText, { color: c.primary }]}>Keep my current look</Text>
+          </Pressable>
+        </View>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -833,9 +1122,40 @@ const styles = StyleSheet.create({
   sectionBody:    { gap: 8 },
   empty:          { fontSize: 13, fontStyle: 'italic', paddingVertical: 8 },
   footer:         { fontSize: 12, textAlign: 'center', marginTop: 8 },
+  teaser:         { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, gap: 7 },
+  teaserTop:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  teaserKicker:   { fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
+  teaserName:     { fontSize: 14, fontWeight: '800', letterSpacing: 0.5, flexShrink: 1 },
+  teaserTrack:    { height: 5, borderRadius: 3, overflow: 'hidden' },
+  teaserFill:     { height: 5, borderRadius: 3 },
+  teaserSub:      { fontSize: 11.5, fontWeight: '600' },
+
+  quests:         { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 6 },
+  questsHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
+  questsTitle:    { fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
+  questsCount:    { fontSize: 11, fontWeight: '700' },
+  questRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9 },
+  questText:      { flex: 1, gap: 1 },
+  questName:      { fontSize: 14, fontWeight: '700' },
+  questHint:      { fontSize: 11.5 },
+  questClaim:     { paddingHorizontal: 14, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  questClaimText: { fontSize: 13, fontWeight: '800' },
+  questReward:    { fontSize: 12, fontWeight: '800' },
+
   xpToastLayer:   { position: 'absolute', left: 0, right: 0, top: '40%', alignItems: 'center', pointerEvents: 'none' },
   xpToast:        { position: 'absolute' },
   xpToastText:    { fontSize: 28, fontWeight: '900', letterSpacing: 0.5, textShadowColor: '#0008', textShadowRadius: 6 },
+  world:          { alignItems: 'center', justifyContent: 'center', padding: 28 },
+  worldInner:     { alignItems: 'center', gap: 12, width: '100%' },
+  worldKicker:    { fontSize: 12, fontWeight: '800', letterSpacing: 2.5 },
+  worldName:      { fontSize: 44, fontWeight: '900', textAlign: 'center', includeFontPadding: false },
+  worldDesc:      { fontSize: 15, lineHeight: 22, textAlign: 'center', paddingHorizontal: 12 },
+  worldExtra:     { fontSize: 13, fontWeight: '600', marginTop: 2 },
+  worldButtons:   { alignSelf: 'stretch', gap: 10, marginTop: 22 },
+  worldEnter:     { height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  worldEnterText: { fontSize: 16, fontWeight: '800' },
+  worldKeep:      { height: 46, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  worldKeepText:  { fontSize: 14, fontWeight: '600' },
   levelUpWrap:    { alignItems: 'center', justifyContent: 'center' },
   levelUpGlow:    { position: 'absolute', width: 320, height: 320, borderRadius: 160 },
   raysWrap:       { position: 'absolute', width: 1, height: 1, alignItems: 'center', justifyContent: 'center' },

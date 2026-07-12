@@ -35,7 +35,9 @@ import {
   type ThemeId,
 } from '@/constants/themes';
 import { DECORATIONS, type DecorationId } from '@/constants/decorations';
+import { QUESTS } from '@/constants/quests';
 import { runDailyResetIfNeeded } from '@/lib/daily-reset';
+import { syncRemindersToDayStart } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import type { BadHabit, Profile, Task } from '@/lib/types';
 import {
@@ -103,6 +105,8 @@ interface AppStore {
   setUsername:         (name: string) => Promise<void>;
   uploadAvatar:        (localUri: string) => Promise<boolean>;
   clearLevelUpEvent:   () => void;
+  /** Claim a met first-week quest; returns the reward XP (0 = not claimable). */
+  claimQuest:          (questId: string) => Promise<number>;
 
   // ---- interactive tutorial (first-run walkthrough on the dashboard) ----
   /** null = not running; otherwise index into the dashboard's step list. */
@@ -221,6 +225,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
         loadError:     null,
         hydrated:      true,
       });
+
+      // Refresh reminder copy with the live streak ("14-day streak on
+      // the line") — fire-and-forget, no-op when reminders are off.
+      void syncRemindersToDayStart(profile.day_start_time, profile.day_streak);
     } catch (err) {
       console.warn('[useAppStore] loadForUser failed', err);
       set({
@@ -770,6 +778,51 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   clearLevelUpEvent() {
     set({ levelUpEvent: null });
+  },
+
+  async claimQuest(questId) {
+    const { profile, tasks, badHabits } = get();
+    if (!profile) return 0;
+    const quest = QUESTS.find((q) => q.id === questId);
+    if (!quest) return 0;
+    if (profile.quests_claimed.includes(questId)) return 0;
+    if (!quest.isMet({ profile, tasks, badHabits })) return 0;
+
+    // Quest XP is a bonus: it bypasses the 300/day task cap on purpose.
+    const xp = applyXpDelta({
+      total_xp: profile.total_xp,
+      level:    profile.level,
+      deltaXp:  quest.rewardXp,
+    });
+    const nextProfile: Profile = {
+      ...profile,
+      total_xp:       xp.total_xp,
+      current_xp:     xp.current_xp,
+      level:          xp.level,
+      quests_claimed: [...profile.quests_claimed, questId],
+    };
+    set({ profile: nextProfile });
+    if (xp.leveledUpFrom != null) {
+      set({ levelUpEvent: levelUpEventFor(xp.level, xp.leveledUpFrom) });
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          total_xp:       nextProfile.total_xp,
+          current_xp:     nextProfile.current_xp,
+          level:          nextProfile.level,
+          quests_claimed: nextProfile.quests_claimed,
+        })
+        .eq('id', profile.id);
+      if (error) throw error;
+    } catch (err) {
+      console.warn('[useAppStore] claimQuest persist failed', err);
+      await get().loadForUser(profile.id);
+      return 0;
+    }
+    return quest.rewardXp;
   },
 
   tutorialStep: null,
