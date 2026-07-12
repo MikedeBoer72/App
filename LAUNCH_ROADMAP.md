@@ -61,6 +61,18 @@ repo root. Steps:
       user, NOT for tracking: Email, Name, Photos(avatar), User Content,
       Purchases. Everything else = Not Collected. Tracking = No.
 
+## 🗺️ ENGAGEMENT ROADMAP (user-approved plan)
+
+Phase 1 (pre-launch) — ✅ SHIPPED eea5c6f: next-unlock teaser + pace ETA,
+mystery decorations, first-week quest ladder (migration 007!), world-entry
+takeover celebration, streak-aware reminder copy.
+Phase 2 — ⬜ THE WORLD MAP: dedicated screen behind a dashboard button
+(NOT the level ring). Winding level-path through themed "worlds" (each
+region drawn in its theme's colors/font), player marker, fog over locked
+worlds, mystery nodes. Reuses lib/unlocks.ts.
+Phase 3 (v1.1) — ⬜ streak freeze (earned), streak milestone rewards
+(7/30/100), level-up share card, weekly report.
+
 ## ⚠️ NEW SINCE LAST BUILD (needs `npm install` + migration 006 + rebuild)
 
 Big feature/fix session (commits 5163c99..c3e923c):
