@@ -66,10 +66,10 @@ repo root. Steps:
 Phase 1 (pre-launch) — ✅ SHIPPED eea5c6f: next-unlock teaser + pace ETA,
 mystery decorations, first-week quest ladder (migration 007!), world-entry
 takeover celebration, streak-aware reminder copy.
-Phase 2 — ⬜ THE WORLD MAP: dedicated screen behind a dashboard button
-(NOT the level ring). Winding level-path through themed "worlds" (each
-region drawn in its theme's colors/font), player marker, fog over locked
-worlds, mystery nodes. Reuses lib/unlocks.ts.
+Phase 2 — ✅ SHIPPED 727b107: The Journey (/map). World cards in each
+theme's identity, conquered/current/next/fog states, YOU ARE HERE marker
++ progress, mystery decoration nodes, auto-scroll to player. Entry: map
+icon in dashboard header + tapping the NEXT UNLOCK teaser.
 Phase 3 (v1.1) — ⬜ streak freeze (earned), streak milestone rewards
 (7/30/100), level-up share card, weekly report.
 
