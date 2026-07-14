@@ -47,7 +47,7 @@ import { getDecoration } from '@/constants/decorations';
 import { play } from '@/lib/sound';
 import { STREAK_MILESTONES } from '@/lib/streak';
 import { supabase } from '@/lib/supabase';
-import { getNextUnlock, getPreviousUnlockLevel } from '@/lib/unlocks';
+import { getNextUnlock } from '@/lib/unlocks';
 import { calculateTotalXpForLevel, DAILY_TASK_XP_CAP, getXpProgress } from '@/lib/xp';
 import {
   TUTORIAL_DONE_KEY,
@@ -757,9 +757,9 @@ function Section(props: {
 }
 
 /**
- * "NEXT UNLOCK" strip: what's coming, how far, and an ETA at the
- * user's real pace. Themes are named (hype), decorations stay "???"
- * (mystery). Null once every unlock is owned.
+ * "NEXT UNLOCK" strip: one slim pill under the level circle — icon,
+ * name, distance, ETA — tap opens the map. Themes are named (hype),
+ * decorations stay "???" (mystery). Null once every unlock is owned.
  */
 function NextUnlockTeaser({
   level,
@@ -777,13 +777,9 @@ function NextUnlockTeaser({
   const next = getNextUnlock(level);
   if (!next) return null;
 
-  const prev = getPreviousUnlockLevel(level);
-  const span = Math.max(1, next.level - prev);
-  const frac = Math.min(1, Math.max(0, (level - prev) / span));
   const levelsLeft = next.level - level;
   const xpLeft = Math.max(0, calculateTotalXpForLevel(next.level) - totalXp);
   const etaDays = avgDailyXp && avgDailyXp > 0 ? Math.max(1, Math.ceil(xpLeft / avgDailyXp)) : null;
-
   const label = next.mystery ? '???' : next.name.toUpperCase();
 
   return (
@@ -791,28 +787,18 @@ function NextUnlockTeaser({
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [
-        styles.teaser,
+        styles.teaserStrip,
         { backgroundColor: theme.colors.surface, opacity: pressed ? 0.7 : 1 },
       ]}
     >
-      <View style={styles.teaserTop}>
-        <Text style={[styles.teaserKicker, { color: theme.colors.secondary }]}>NEXT UNLOCK · LV {next.level}</Text>
-        <Text style={[styles.teaserName, { color: theme.colors.accent, fontFamily: theme.fonts.bold }]} numberOfLines={1}>
-          {next.kind === 'theme' ? '🌍 ' : '✨ '}{label}
-        </Text>
-      </View>
-      <View style={[styles.teaserTrack, { backgroundColor: theme.colors.muted }]}>
-        <View
-          style={[
-            styles.teaserFill,
-            { backgroundColor: theme.colors.accent, width: `${Math.round(frac * 100)}%` },
-          ]}
-        />
-      </View>
-      <Text style={[styles.teaserSub, { color: theme.colors.secondary }]}>
-        {levelsLeft} level{levelsLeft === 1 ? '' : 's'} to go
-        {etaDays != null ? ` · ~${etaDays} day${etaDays === 1 ? '' : 's'} at your pace` : ''}
+      <Text style={styles.teaserIcon}>{next.kind === 'theme' ? '🌍' : '✨'}</Text>
+      <Text style={[styles.teaserName, { color: theme.colors.accent, fontFamily: theme.fonts.bold }]} numberOfLines={1}>
+        {label}
       </Text>
+      <Text style={[styles.teaserSub, { color: theme.colors.secondary }]} numberOfLines={1}>
+        · {levelsLeft} level{levelsLeft === 1 ? '' : 's'} to go{etaDays != null ? ` · ~${etaDays}d` : ''}
+      </Text>
+      <Ionicons name="chevron-forward" size={13} color={theme.colors.secondary} />
     </Pressable>
   );
 }
@@ -1193,13 +1179,14 @@ const styles = StyleSheet.create({
   reportBanner:   { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, borderWidth: 1.5, paddingHorizontal: 14, paddingVertical: 11 },
   reportEmoji:    { fontSize: 16 },
   reportText:     { flex: 1, fontSize: 14, fontWeight: '700' },
-  teaser:         { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, gap: 7 },
-  teaserTop:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  teaserKicker:   { fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
-  teaserName:     { fontSize: 14, fontWeight: '800', letterSpacing: 0.5, flexShrink: 1 },
-  teaserTrack:    { height: 5, borderRadius: 3, overflow: 'hidden' },
-  teaserFill:     { height: 5, borderRadius: 3 },
-  teaserSub:      { fontSize: 11.5, fontWeight: '600' },
+  teaserStrip:    {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'center',
+    gap: 5, borderRadius: 999, paddingHorizontal: 13, paddingVertical: 7,
+    maxWidth: '92%',
+  },
+  teaserIcon:     { fontSize: 12 },
+  teaserName:     { fontSize: 12.5, fontWeight: '800', letterSpacing: 0.5, flexShrink: 1 },
+  teaserSub:      { fontSize: 12, fontWeight: '600', flexShrink: 1 },
 
   xpToastLayer:   { position: 'absolute', left: 0, right: 0, top: '40%', alignItems: 'center', pointerEvents: 'none' },
   xpToast:        { position: 'absolute' },

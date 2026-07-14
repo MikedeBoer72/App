@@ -75,20 +75,20 @@ const PACIFICO = {                            // single-weight script
   bold:    'Pacifico_400Regular',
   heavy:   'Pacifico_400Regular',
 };
-const RUBIK = {
-  regular: 'Rubik_400Regular',
-  bold:    'Rubik_700Bold',
-  heavy:   'Rubik_900Black',
+const CHAKRA_PETCH = {                        // squared sci-fi/mecha
+  regular: 'ChakraPetch_400Regular',
+  bold:    'ChakraPetch_600SemiBold',
+  heavy:   'ChakraPetch_700Bold',            // tops at 700
 };
 const BALOO = {
   regular: 'Baloo2_400Regular',
   bold:    'Baloo2_700Bold',
   heavy:   'Baloo2_800ExtraBold',
 };
-const LORA = {
-  regular: 'Lora_400Regular',
-  bold:    'Lora_700Bold',
-  heavy:   'Lora_700Bold',                   // tops at 700
+const ALFA_SLAB = {                           // single-weight chunky slab
+  regular: 'AlfaSlabOne_400Regular',
+  bold:    'AlfaSlabOne_400Regular',
+  heavy:   'AlfaSlabOne_400Regular',
 };
 const CINZEL = {
   regular: 'Cinzel_400Regular',
@@ -194,8 +194,8 @@ export const THEMES: readonly Theme[] = [
     unlockLevel: 10,
     isPaid:      true,
     description: 'Cool gray with a sky-blue spark.',
-    fontLabel:   'Rubik',
-    fonts:       RUBIK,
+    fontLabel:   'Chakra Petch',
+    fonts:       CHAKRA_PETCH,
     colors: {
       background: '#1E293B',
       surface:    '#334155',
@@ -251,8 +251,8 @@ export const THEMES: readonly Theme[] = [
     unlockLevel: 40,
     isPaid:      true,
     description: 'Warm dusk, orange embers.',
-    fontLabel:   'Lora',
-    fonts:       LORA,
+    fontLabel:   'Alfa Slab One',
+    fonts:       ALFA_SLAB,
     colors: {
       background: '#292524',
       surface:    '#44403C',

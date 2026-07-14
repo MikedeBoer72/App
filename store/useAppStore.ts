@@ -45,6 +45,7 @@ import {
   clampDailyTaskXp,
   DAILY_TASK_XP_CAP,
   getLevelName,
+  getXpProgress,
   MAX_ITEMS_PER_DAY,
   xpValuePerTask,
 } from '@/lib/xp';
@@ -195,6 +196,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
           .single<Profile>();
         if (cErr || !created) throw cErr ?? new Error('Failed to create profile');
         profile = created;
+      }
+
+      // Level is derived from total_xp via the band curve, which gets
+      // re-tuned over time (bands got cheaper). Stored level/current_xp
+      // can therefore lag total_xp — re-derive and persist silently.
+      // Never downward: nobody should drop back through the level-5
+      // paywall because of a curve change.
+      const derived = getXpProgress(profile.total_xp);
+      if (derived.level > profile.level) {
+        profile = { ...profile, level: derived.level, current_xp: derived.currentXp };
+        const { error: syncErr } = await supabase
+          .from('profiles')
+          .update({ level: profile.level, current_xp: profile.current_xp })
+          .eq('id', userId);
+        if (syncErr) console.warn('[useAppStore] level re-sync persist failed', syncErr);
       }
 
       // The active day is last_active_date (the daily reset above just

@@ -78,6 +78,24 @@ level-up / world-entry / milestone), weekly report (/settings/
 weekly-report; Stats header calendar icon + Sunday dashboard banner).
 MIGRATION 008 required + npm install (react-native-view-shot).
 
+## ⚠️ POLISH PASS (July 2026 — needs `npm install` + rebuild)
+
+- Fonts: Calm=Pacifico, Slate=Chakra Petch, Green Vibes=Baloo 2,
+  Sunset=Alfa Slab One (4 new @expo-google-fonts packages; playfair/
+  outfit/rubik/lora removed) → run `npm install`
+- First-week quests REMOVED (migration 007 now optional; the
+  quests_claimed column is a harmless leftover)
+- Scroll indicators hidden app-wide (finger-only scrolling)
+- Dashboard: next-unlock teaser is now a slim one-line pill; tasks sit
+  right under the level circle
+- XP curve re-tuned (cheaper): 1-4=300, 5-19=500, 20-99=750, 100+=1000
+  per level. Existing accounts silently re-level upward from total_xp
+  on first load (never downward)
+- /map rebuilt as the ISLAND WORLD MAP: one SVG island per theme,
+  locked = grey silhouette + name, unlocked = colored biome, square
+  stepping-stone roads that light up with progress, square player
+  marker + YOU ARE HERE on the current island
+
 ## ⚠️ NEW SINCE LAST BUILD (needs `npm install` + migration 006 + rebuild)
 
 Big feature/fix session (commits 5163c99..c3e923c):

@@ -24,10 +24,10 @@ import { useFonts } from 'expo-font';
 import { SpaceGrotesk_400Regular, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 import { Inter_400Regular, Inter_700Bold, Inter_900Black } from '@expo-google-fonts/inter';
 import { Pacifico_400Regular } from '@expo-google-fonts/pacifico';
-import { Rubik_400Regular, Rubik_700Bold, Rubik_900Black } from '@expo-google-fonts/rubik';
+import { ChakraPetch_400Regular, ChakraPetch_600SemiBold, ChakraPetch_700Bold } from '@expo-google-fonts/chakra-petch';
 import { Baloo2_400Regular, Baloo2_700Bold, Baloo2_800ExtraBold } from '@expo-google-fonts/baloo-2';
 import { MajorMonoDisplay_400Regular } from '@expo-google-fonts/major-mono-display';
-import { Lora_400Regular, Lora_700Bold } from '@expo-google-fonts/lora';
+import { AlfaSlabOne_400Regular } from '@expo-google-fonts/alfa-slab-one';
 import { Cinzel_400Regular, Cinzel_700Bold, Cinzel_900Black } from '@expo-google-fonts/cinzel';
 import { DMSerifDisplay_400Regular } from '@expo-google-fonts/dm-serif-display';
 import { Orbitron_400Regular, Orbitron_700Bold, Orbitron_900Black } from '@expo-google-fonts/orbitron';
@@ -62,10 +62,10 @@ export default function RootLayout() {
     SpaceGrotesk_400Regular, SpaceGrotesk_700Bold,
     Inter_400Regular, Inter_700Bold, Inter_900Black,
     Pacifico_400Regular,
-    Rubik_400Regular, Rubik_700Bold, Rubik_900Black,
+    ChakraPetch_400Regular, ChakraPetch_600SemiBold, ChakraPetch_700Bold,
     Baloo2_400Regular, Baloo2_700Bold, Baloo2_800ExtraBold,
     MajorMonoDisplay_400Regular,
-    Lora_400Regular, Lora_700Bold,
+    AlfaSlabOne_400Regular,
     Cinzel_400Regular, Cinzel_700Bold, Cinzel_900Black,
     DMSerifDisplay_400Regular,
     Orbitron_400Regular, Orbitron_700Bold, Orbitron_900Black,
