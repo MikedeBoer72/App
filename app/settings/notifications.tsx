@@ -92,7 +92,7 @@ export default function NotificationsScreen() {
         <View style={styles.iconBtn} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Toggle card */}
         <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
           <View style={styles.toggleRow}>

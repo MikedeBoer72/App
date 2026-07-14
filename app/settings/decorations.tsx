@@ -71,7 +71,7 @@ export default function DecorationsScreen() {
         <View style={styles.iconBtn} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {rows.map(({ decoration: d, status }) => (
           <Pressable
             key={d.id}

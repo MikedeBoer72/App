@@ -76,7 +76,7 @@ export default function FontsScreen() {
         <View style={styles.iconBtn} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {rows.map(({ theme: t, status }) => (
           <Pressable
             key={t.id}

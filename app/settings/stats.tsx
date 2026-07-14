@@ -170,7 +170,7 @@ export default function StatsScreen() {
           <ActivityIndicator color={theme.colors.accent} />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
           {/* Heatmap */}
           <SectionHeader text="Last 6 weeks" color={theme.colors.secondary} fontFamily={theme.fonts.bold} />
           <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>

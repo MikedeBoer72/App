@@ -141,7 +141,7 @@ export default function ReferFriendsScreen() {
         <View style={styles.iconBtn} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <Text style={[styles.headline, { color: theme.colors.primary }]}>
           Refer Friends, Get 1 Free Month
         </Text>

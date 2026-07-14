@@ -33,7 +33,7 @@ export interface Profile {
   daily_task_xp_earned:            number;
   daily_bad_habit_xp_lost:         number;
   bad_habits_penalized_today:      string[];
-  /** First-week quest ids already claimed (see constants/quests.ts). */
+  /** Legacy: retired first-week quest ids (column kept in the DB; unused in-app). */
   quests_claimed:                  string[];
   /** Banked streak freezes (earned every 7 clean days, max 2). */
   streak_freezes:                  number;

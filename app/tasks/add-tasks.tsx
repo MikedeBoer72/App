@@ -215,7 +215,7 @@ export default function AddTasksScreen() {
       </Text>
 
       {/* Suggestions OR recent chips */}
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {trimmed ? (
           <View style={styles.block}>
             <Text style={[styles.blockTitle, { color: theme.colors.secondary }]}>Suggestions</Text>

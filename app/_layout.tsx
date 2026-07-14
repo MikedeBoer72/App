@@ -23,9 +23,9 @@ import type { Session } from '@supabase/supabase-js';
 import { useFonts } from 'expo-font';
 import { SpaceGrotesk_400Regular, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 import { Inter_400Regular, Inter_700Bold, Inter_900Black } from '@expo-google-fonts/inter';
-import { PlayfairDisplay_400Regular, PlayfairDisplay_700Bold, PlayfairDisplay_900Black } from '@expo-google-fonts/playfair-display';
+import { Pacifico_400Regular } from '@expo-google-fonts/pacifico';
 import { Rubik_400Regular, Rubik_700Bold, Rubik_900Black } from '@expo-google-fonts/rubik';
-import { Outfit_400Regular, Outfit_700Bold, Outfit_900Black } from '@expo-google-fonts/outfit';
+import { Baloo2_400Regular, Baloo2_700Bold, Baloo2_800ExtraBold } from '@expo-google-fonts/baloo-2';
 import { MajorMonoDisplay_400Regular } from '@expo-google-fonts/major-mono-display';
 import { Lora_400Regular, Lora_700Bold } from '@expo-google-fonts/lora';
 import { Cinzel_400Regular, Cinzel_700Bold, Cinzel_900Black } from '@expo-google-fonts/cinzel';
@@ -61,9 +61,9 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_400Regular, SpaceGrotesk_700Bold,
     Inter_400Regular, Inter_700Bold, Inter_900Black,
-    PlayfairDisplay_400Regular, PlayfairDisplay_700Bold, PlayfairDisplay_900Black,
+    Pacifico_400Regular,
     Rubik_400Regular, Rubik_700Bold, Rubik_900Black,
-    Outfit_400Regular, Outfit_700Bold, Outfit_900Black,
+    Baloo2_400Regular, Baloo2_700Bold, Baloo2_800ExtraBold,
     MajorMonoDisplay_400Regular,
     Lora_400Regular, Lora_700Bold,
     Cinzel_400Regular, Cinzel_700Bold, Cinzel_900Black,

@@ -44,7 +44,6 @@ import { StreakDisplay } from '@/components/StreakDisplay';
 import { TaskItem } from '@/components/TaskItem';
 import { getTheme } from '@/constants/themes';
 import { getDecoration } from '@/constants/decorations';
-import { QUESTS } from '@/constants/quests';
 import { play } from '@/lib/sound';
 import { STREAK_MILESTONES } from '@/lib/streak';
 import { supabase } from '@/lib/supabase';
@@ -122,7 +121,6 @@ export default function Dashboard() {
   const clearLevelUpEvent = useAppStore((s) => s.clearLevelUpEvent);
   const setTheme = useAppStore((s) => s.setTheme);
   const setDecoration = useAppStore((s) => s.setDecoration);
-  const claimQuest = useAppStore((s) => s.claimQuest);
   const ackStreakMilestone = useAppStore((s) => s.ackStreakMilestone);
   const tutorialStep = useAppStore((s) => s.tutorialStep);
   const startTutorial = useAppStore((s) => s.startTutorial);
@@ -198,15 +196,6 @@ export default function Dashboard() {
       await Share.share({ url: uri });
     } catch (err) {
       console.warn('[dashboard] share failed', err);
-    }
-  }
-
-  async function onClaimQuest(questId: string) {
-    const reward = await claimQuest(questId);
-    if (reward > 0) {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      play('unlock');
-      pushXpToast(reward);
     }
   }
 
@@ -410,6 +399,7 @@ export default function Dashboard() {
       <NestableScrollContainer
         contentContainerStyle={styles.scroll}
         scrollEnabled={tutorialStep == null}
+        showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -512,16 +502,6 @@ export default function Dashboard() {
           avgDailyXp={avgDailyXp}
           theme={theme}
           onPress={() => router.push('/map')}
-        />
-
-        {/* First-week quests (fresh accounts only; hides forever once
-            all are claimed). */}
-        <QuestsCard
-          profile={profile}
-          tasks={tasks}
-          badHabits={badHabits}
-          theme={theme}
-          onClaim={onClaimQuest}
         />
 
         {/* Weekly report banner, Sundays only. */}
@@ -834,74 +814,6 @@ function NextUnlockTeaser({
         {etaDays != null ? ` · ~${etaDays} day${etaDays === 1 ? '' : 's'} at your pace` : ''}
       </Text>
     </Pressable>
-  );
-}
-
-/** First-week quest ladder card. Shows up to 3 unclaimed quests. */
-function QuestsCard({
-  profile,
-  tasks,
-  badHabits,
-  theme,
-  onClaim,
-}: {
-  profile:   NonNullable<ReturnType<typeof useAppStore.getState>['profile']>;
-  tasks:     Task[];
-  badHabits: BadHabit[];
-  theme:     ReturnType<typeof useAppStore.getState>['theme'];
-  onClaim:   (questId: string) => void;
-}) {
-  const claimed = profile.quests_claimed ?? [];
-  const unclaimed = QUESTS.filter((q) => !claimed.includes(q.id));
-  if (unclaimed.length === 0) return null;
-  const visible = unclaimed.slice(0, 3);
-  const state = { profile, tasks, badHabits };
-
-  return (
-    <View style={[styles.quests, { backgroundColor: theme.colors.surface }]}>
-      <View style={styles.questsHeader}>
-        <Text style={[styles.questsTitle, { color: theme.colors.primary, fontFamily: theme.fonts.bold }]}>
-          FIRST WEEK QUESTS
-        </Text>
-        <Text style={[styles.questsCount, { color: theme.colors.secondary }]}>
-          {claimed.length}/{QUESTS.length}
-        </Text>
-      </View>
-      {visible.map((q, i) => {
-        const met = q.isMet(state);
-        return (
-          <View
-            key={q.id}
-            style={[
-              styles.questRow,
-              i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.muted },
-            ]}
-          >
-            <View style={styles.questText}>
-              <Text style={[styles.questName, { color: met ? theme.colors.primary : theme.colors.secondary }]}>
-                {q.title}
-              </Text>
-              <Text style={[styles.questHint, { color: theme.colors.muted }]} numberOfLines={1}>
-                {met ? `+${q.rewardXp} XP ready!` : q.hint}
-              </Text>
-            </View>
-            {met ? (
-              <Pressable
-                onPress={() => onClaim(q.id)}
-                style={({ pressed }) => [
-                  styles.questClaim,
-                  { backgroundColor: theme.colors.accent, opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <Text style={[styles.questClaimText, { color: theme.colors.background }]}>Claim</Text>
-              </Pressable>
-            ) : (
-              <Text style={[styles.questReward, { color: theme.colors.muted }]}>+{q.rewardXp}</Text>
-            )}
-          </View>
-        );
-      })}
-    </View>
   );
 }
 
@@ -1288,18 +1200,6 @@ const styles = StyleSheet.create({
   teaserTrack:    { height: 5, borderRadius: 3, overflow: 'hidden' },
   teaserFill:     { height: 5, borderRadius: 3 },
   teaserSub:      { fontSize: 11.5, fontWeight: '600' },
-
-  quests:         { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 6 },
-  questsHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
-  questsTitle:    { fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
-  questsCount:    { fontSize: 11, fontWeight: '700' },
-  questRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9 },
-  questText:      { flex: 1, gap: 1 },
-  questName:      { fontSize: 14, fontWeight: '700' },
-  questHint:      { fontSize: 11.5 },
-  questClaim:     { paddingHorizontal: 14, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  questClaimText: { fontSize: 13, fontWeight: '800' },
-  questReward:    { fontSize: 12, fontWeight: '800' },
 
   xpToastLayer:   { position: 'absolute', left: 0, right: 0, top: '40%', alignItems: 'center', pointerEvents: 'none' },
   xpToast:        { position: 'absolute' },

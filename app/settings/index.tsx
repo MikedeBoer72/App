@@ -50,7 +50,7 @@ export default function SettingsMenu() {
         <View style={styles.iconBtn} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* User card */}
         {profile ? (
           <View style={[styles.userCard, { backgroundColor: theme.colors.surface }]}>

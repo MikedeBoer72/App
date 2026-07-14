@@ -70,20 +70,20 @@ const INTER = {
   bold:    'Inter_700Bold',
   heavy:   'Inter_900Black',
 };
-const PLAYFAIR = {
-  regular: 'PlayfairDisplay_400Regular',
-  bold:    'PlayfairDisplay_700Bold',
-  heavy:   'PlayfairDisplay_900Black',
+const PACIFICO = {                            // single-weight script
+  regular: 'Pacifico_400Regular',
+  bold:    'Pacifico_400Regular',
+  heavy:   'Pacifico_400Regular',
 };
 const RUBIK = {
   regular: 'Rubik_400Regular',
   bold:    'Rubik_700Bold',
   heavy:   'Rubik_900Black',
 };
-const OUTFIT = {
-  regular: 'Outfit_400Regular',
-  bold:    'Outfit_700Bold',
-  heavy:   'Outfit_900Black',
+const BALOO = {
+  regular: 'Baloo2_400Regular',
+  bold:    'Baloo2_700Bold',
+  heavy:   'Baloo2_800ExtraBold',
 };
 const LORA = {
   regular: 'Lora_400Regular',
@@ -175,8 +175,8 @@ export const THEMES: readonly Theme[] = [
     unlockLevel: 5,
     isPaid:      true,
     description: 'Warm cream and antique gold.',
-    fontLabel:   'Playfair Display',
-    fonts:       PLAYFAIR,
+    fontLabel:   'Pacifico',
+    fonts:       PACIFICO,
     colors: {
       background: '#FAFAF0',
       surface:    '#F0EFE2',
@@ -213,8 +213,8 @@ export const THEMES: readonly Theme[] = [
     unlockLevel: 20,
     isPaid:      true,
     description: 'Kiwi cream and grass green.',
-    fontLabel:   'Outfit',
-    fonts:       OUTFIT,
+    fontLabel:   'Baloo 2',
+    fonts:       BALOO,
     colors: {
       background: '#F7FEE7',
       surface:    '#FFFFFF',

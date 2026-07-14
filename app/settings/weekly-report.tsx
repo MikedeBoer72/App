@@ -98,7 +98,7 @@ export default function WeeklyReportScreen() {
           </Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
           <Text style={[styles.sub, { color: theme.colors.secondary }]}>
             Last {logs.length} day{logs.length === 1 ? '' : 's'}
           </Text>

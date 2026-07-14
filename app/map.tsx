@@ -94,7 +94,7 @@ export default function MapScreen() {
         </View>
       </View>
 
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll}>
+      <ScrollView showsVerticalScrollIndicator={false} ref={scrollRef} contentContainerStyle={styles.scroll}>
         {/* Beyond the summit */}
         <Text style={[styles.beyond, { color: theme.colors.muted }]}>
           ··· the journey continues ···

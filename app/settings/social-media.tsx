@@ -39,7 +39,7 @@ export default function SocialMediaScreen() {
         <View style={styles.iconBtn} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <View style={styles.hero}>
           <Ionicons name="megaphone-outline" size={64} color={theme.colors.accent} />
           <Text style={[styles.heroTitle, { color: theme.colors.primary, fontFamily: theme.fonts.bold }]}>
