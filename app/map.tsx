@@ -1,20 +1,23 @@
-// The Journey — YourLevel's island world map.
+// YourLevel Roadmap — the world map.
 //
-// One tall ocean. Every theme is an ISLAND with its own hand-drawn
-// SVG biome (Calm = golden beach, Slate = blue moon over water,
-// Inferno = volcano, ...). Islands alternate left/right up the map
-// and are connected by square stepping-stone tiles — the road lights
-// up tile by tile as the player levels through the current island's
-// range. Decorations appear as ✨ square nodes on the road, "???"
-// until reached.
+// Candy-Crush-style level road: EVERY level is a numbered square step
+// on a serpentine path that winds upward through full-bleed theme
+// ZONES. You are inside each world as you walk it — the zone is
+// painted in its theme's palette with its island landmark art at the
+// entrance — and you unlock the next world by walking to the end of
+// the current one. Short ocean bridges of stepping-stones connect
+// the zones.
 //
-// Every island is visible from level 1: locked ones keep their full
-// structure and name but render in fog-grey (toGrey maps each biome
-// color to a luminance-matched grey). Unlocking an island colors it
-// in. The player is a SQUARE marker (games-style) on their current
-// island, with progress toward the next island underneath.
+// Zone states:
+//   unlocked  — full theme color, passed steps filled in accent,
+//               upcoming steps hollow
+//   locked    — fog-grey: structure, numbers and name all visible,
+//               zero color, lock on the sign
 //
-// Auto-scrolls to the player's island on mount.
+// The player is a bigger SQUARE on their current level step with a
+// YOU ARE HERE chip. Decorations are ✨ squares parked beside the
+// step that unlocks them ("???" until reached). Auto-scrolls to the
+// player on mount.
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -25,23 +28,28 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Ellipse, Line, Path, Polygon, Rect } from 'react-native-svg';
+import Svg, { Circle, Ellipse, Line, Path, Polygon, Polyline, Rect } from 'react-native-svg';
 
+import { DECORATIONS, type Decoration } from '@/constants/decorations';
 import { getTheme, THEMES, type ThemeId } from '@/constants/themes';
-import { getJourneyTimeline } from '@/lib/unlocks';
 import { useAppStore } from '@/store/useAppStore';
 
 // ---------------------------------------------------------------------------
 // Ocean + fog palette (the map has its own fixed identity)
 // ---------------------------------------------------------------------------
 
-const OCEAN      = '#06131D';
-const OCEAN_WAVE = '#16293A';
-const TILE_OFF   = '#1D3040';
-const GREY_TEXT  = '#5E6B77';
+const OCEAN       = '#06131D';
+const OCEAN_WAVE  = '#16293A';
+const FOG_BG      = '#0C141C';   // locked-zone ground
+const FOG_PATH    = '#1A242E';
+const FOG_NODE    = '#151C24';
+const FOG_BORDER  = '#232E39';
+const GREY_TEXT   = '#5E6B77';
+const TILE_OFF    = '#1D3040';
 
 /** Luminance-matched grey for locked-island art: structure stays,
  *  color goes. Compressed into a dark band so it reads as fog. */
@@ -58,8 +66,8 @@ function toGrey(hex: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Island biome art. One SVG per theme, 240x130 viewBox. `C()` maps
-// every color to grey while the island is locked.
+// Island landmark art. One SVG per theme, 240x130 viewBox. `C()` maps
+// every color to grey while the zone is locked.
 // ---------------------------------------------------------------------------
 
 function IslandArt({ id, unlocked }: { id: ThemeId; unlocked: boolean }) {
@@ -271,58 +279,43 @@ function IslandArt({ id, unlocked }: { id: ThemeId; unlocked: boolean }) {
 }
 
 // ---------------------------------------------------------------------------
-// Map data shaping
+// Road geometry
 // ---------------------------------------------------------------------------
 
-interface IslandInfo {
-  id:          ThemeId;
-  name:        string;
-  unlockLevel: number;
-  /** First level of the NEXT island (null on the summit). */
-  nextLevel:   number | null;
-  side:        'left' | 'right';
+const SPACING      = 56;   // vertical px per level step
+const NODE         = 34;   // level square size
+const NODE_CURRENT = 46;   // player's square size
+const PAD_V        = 20;   // breathing room above/below a zone's steps
+
+/** Serpentine x for a level. Continuous across zones so the road
+ *  never jumps at a border. */
+function xForLevel(level: number, width: number): number {
+  return width / 2 + width * 0.27 * Math.sin(level * 0.72);
 }
 
-interface RouteDeco {
-  id:    string;
+interface ZoneInfo {
+  id:    ThemeId;
   name:  string;
-  level: number;
+  start: number;   // first level of this world
+  end:   number;   // last level (inclusive)
 }
 
-/** Islands ascending + the decorations that sit on the road ABOVE
- *  each island (between it and the next one). */
-function buildWorld() {
-  const timeline = getJourneyTimeline();
-  const worlds = THEMES.map((t, i) => ({
-    id:          t.id,
-    name:        t.name,
-    unlockLevel: t.unlockLevel,
-    nextLevel:   THEMES[i + 1]?.unlockLevel ?? null,
-    side:        (i % 2 === 0 ? 'left' : 'right') as 'left' | 'right',
-  }));
-  const decosAbove = new Map<ThemeId, RouteDeco[]>();
-  for (const item of timeline) {
-    if (item.kind !== 'decoration') continue;
-    // The road segment a decoration belongs to: between the island
-    // whose range contains its level and the island above.
-    const host = [...worlds].reverse().find((w) => w.unlockLevel < item.level);
-    if (!host) continue;
-    const list = decosAbove.get(host.id) ?? [];
-    list.push({ id: item.id, name: item.name, level: item.level });
-    decosAbove.set(host.id, list);
-  }
-  for (const list of decosAbove.values()) list.sort((a, b) => a.level - b.level);
-  return { worlds: worlds as IslandInfo[], decosAbove };
+function buildZones(playerLevel: number): ZoneInfo[] {
+  return THEMES.map((t, i) => {
+    const next = THEMES[i + 1]?.unlockLevel ?? null;
+    // The summit zone keeps growing ahead of the player.
+    const end = next != null ? next - 1 : Math.max(t.unlockLevel + 9, playerLevel + 5);
+    return { id: t.id, name: t.name, start: t.unlockLevel, end };
+  });
 }
 
 // ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
 
-const TILES_PER_ROAD = 5;
-
 export default function MapScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const theme = useAppStore((s) => s.theme);
   const profile = useAppStore((s) => s.profile);
 
@@ -330,36 +323,24 @@ export default function MapScreen() {
   const [currentY, setCurrentY] = useState<number | null>(null);
 
   const level = profile?.level ?? 1;
+  const zones = useMemo(() => buildZones(level), [level]);
+  const descending = useMemo(() => [...zones].reverse(), [zones]);
 
-  const { worlds, decosAbove } = useMemo(buildWorld, []);
-  const currentIsland = useMemo(
-    () => [...worlds].reverse().find((w) => w.unlockLevel <= level) ?? worlds[0]!,
-    [worlds, level],
-  );
+  // The zone the player stands in + their step's y within it, so the
+  // wrapper's onLayout can convert to an absolute scroll offset.
+  const hostZone = zones.find((z) => level >= z.start && level <= z.end) ?? null;
+  const nodeYWithin = (zone: ZoneInfo) => {
+    const stepsH = (zone.end - zone.start + 1) * SPACING + PAD_V * 2;
+    return stepsH - PAD_V - SPACING / 2 - (level - zone.start) * SPACING;
+  };
 
   useEffect(() => {
     if (currentY == null) return;
     const t = setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: Math.max(0, currentY - 160), animated: false });
+      scrollRef.current?.scrollTo({ y: Math.max(0, currentY - 300), animated: false });
     }, 80);
     return () => clearTimeout(t);
   }, [currentY]);
-
-  // Progress through the current island's level range (0..1).
-  const islandFrac = useMemo(() => {
-    if (currentIsland.nextLevel == null) return 1;
-    const span = Math.max(1, currentIsland.nextLevel - currentIsland.unlockLevel);
-    return Math.min(1, (level - currentIsland.unlockLevel) / span);
-  }, [currentIsland, level]);
-
-  function openIsland(w: IslandInfo, unlocked: boolean) {
-    if (unlocked) router.push('/settings/fonts');
-    else Alert.alert(w.name, `Reach Level ${w.unlockLevel} to unlock this island.`);
-  }
-
-  // Render top (summit) -> bottom (level 1): island, then the road
-  // segment BELOW it (connecting to the previous island).
-  const descending = [...worlds].reverse();
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: OCEAN }]}>
@@ -372,195 +353,225 @@ export default function MapScreen() {
         >
           <Ionicons name="chevron-back" size={26} color="#E6EDF3" />
         </Pressable>
-        <Text style={[styles.title, { fontFamily: theme.fonts.bold }]}>The Journey</Text>
+        <Text style={[styles.title, { fontFamily: theme.fonts.bold }]}>YourLevel Roadmap</Text>
         <View style={styles.levelChip}>
           <Text style={[styles.levelChipText, { color: theme.colors.accent }]}>LV {level}</Text>
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} ref={scrollRef} contentContainerStyle={styles.scroll}>
-        <Text style={styles.beyond}>··· uncharted waters ···</Text>
-
-        {descending.map((w, di) => {
-          const unlocked = w.unlockLevel <= level;
-          const isCurrent = w.id === currentIsland.id;
-          const worldTheme = getTheme(w.id);
-          const below = descending[di + 1] ?? null; // island geographically below
-
-          // Road segment below this island = between `below` and `w`.
-          // Lit tiles show progress while `below` is the current island;
-          // fully lit once `w` itself is unlocked.
-          const roadDecos = below ? (decosAbove.get(below.id) ?? []) : [];
-          let lit = 0;
-          if (below) {
-            if (unlocked) lit = TILES_PER_ROAD;
-            else if (below.id === currentIsland.id) lit = Math.floor(islandFrac * TILES_PER_ROAD);
-          }
-
-          const rangeLabel =
-            w.nextLevel != null ? `LV ${w.unlockLevel}–${w.nextLevel - 1}` : `LV ${w.unlockLevel}+`;
-
+      <ScrollView showsVerticalScrollIndicator={false} ref={scrollRef}>
+        {descending.map((zone, di) => {
+          const zoneBelow = descending[di + 1] ?? null;
           return (
             <View
-              key={w.id}
-              onLayout={isCurrent ? (e) => setCurrentY(e.nativeEvent.layout.y) : undefined}
+              key={zone.id}
+              onLayout={
+                hostZone?.id === zone.id
+                  ? (e) => setCurrentY(e.nativeEvent.layout.y + nodeYWithin(zone))
+                  : undefined
+              }
             >
-              {/* ---- Island ---- */}
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => openIsland(w, unlocked)}
-                style={({ pressed }) => [
-                  styles.island,
-                  w.side === 'left' ? styles.islandLeft : styles.islandRight,
-                  { opacity: pressed ? 0.8 : 1 },
-                ]}
-              >
-                <IslandArt id={w.id} unlocked={unlocked} />
-                <View style={styles.islandLabel}>
-                  {!unlocked ? (
-                    <Ionicons name="lock-closed" size={13} color={GREY_TEXT} />
-                  ) : null}
-                  <Text
-                    style={[
-                      styles.islandName,
-                      {
-                        color: unlocked ? worldTheme.colors.accent : GREY_TEXT,
-                        fontFamily: worldTheme.fonts.heavy,
-                      },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {w.name.toUpperCase()}
-                  </Text>
-                  {unlocked && !isCurrent ? (
-                    <Ionicons name="checkmark-circle" size={15} color={worldTheme.colors.accent} />
-                  ) : null}
-                </View>
-                <Text style={[styles.islandRange, { color: unlocked ? '#9FB2C2' : GREY_TEXT }]}>
-                  {rangeLabel}
-                </Text>
-
-                {isCurrent ? (
-                  <View style={styles.hereWrap}>
-                    <View style={styles.hereRow}>
-                      <View
-                        style={[
-                          styles.playerSquare,
-                          { backgroundColor: theme.colors.accent },
-                        ]}
-                      />
-                      <View style={[styles.hereChip, { backgroundColor: theme.colors.accent }]}>
-                        <Text style={[styles.hereText, { color: OCEAN }]}>
-                          YOU ARE HERE · LV {level}
-                        </Text>
-                      </View>
-                    </View>
-                    {w.nextLevel != null ? (
-                      <View style={styles.hereTrack}>
-                        <View
-                          style={[
-                            styles.hereFill,
-                            {
-                              backgroundColor: theme.colors.accent,
-                              width: `${Math.max(4, Math.round(islandFrac * 100))}%`,
-                            },
-                          ]}
-                        />
-                      </View>
-                    ) : null}
-                  </View>
-                ) : null}
-              </Pressable>
-
-              {/* ---- Road below, down to the previous island ---- */}
-              {below ? (
-                <Road
-                  from={below.side}
-                  to={w.side}
-                  lit={lit}
-                  litColor={worldTheme.colors.accent}
-                  decos={roadDecos}
-                  level={level}
-                  onDecoPress={(d, isUnlocked) => {
-                    if (isUnlocked) router.push('/settings/decorations');
-                    else Alert.alert('Mystery unlock', `Reach Level ${d.level} to reveal it.`);
-                  }}
+              <Zone
+                zone={zone}
+                level={level}
+                width={width}
+                accent={theme.colors.accent}
+                onPressSign={(unlocked) => {
+                  if (unlocked) router.push('/settings/fonts');
+                  else Alert.alert(zone.name, `Reach Level ${zone.start} to enter this world.`);
+                }}
+                onPressDeco={(d, unlocked) => {
+                  if (unlocked) router.push('/settings/decorations');
+                  else Alert.alert('Mystery unlock', `Reach Level ${d.unlockLevel} to reveal it.`);
+                }}
+              />
+              {zoneBelow ? (
+                <Bridge
+                  atLevel={zone.start}
+                  width={width}
+                  crossed={level >= zone.start}
+                  litColor={getTheme(zone.id).colors.accent}
                 />
               ) : null}
             </View>
           );
         })}
-
-        <Text style={styles.origin}>LEVEL 1 · where it all began</Text>
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Road: a diagonal run of square stepping-stones between two islands,
-// with ✨ decoration squares mixed in. Rendered top -> bottom, but lit
-// bottom-up (progress climbs FROM the lower island).
+// Zone: one full-bleed world. Steps wind upward over the theme's
+// ground color; the island landmark + name sign sit at the entrance
+// (bottom). The road and passed steps light up in the world's accent.
 // ---------------------------------------------------------------------------
 
-function Road({
-  from,
-  to,
-  lit,
-  litColor,
-  decos,
+function Zone({
+  zone,
   level,
-  onDecoPress,
+  width,
+  accent,
+  onPressSign,
+  onPressDeco,
 }: {
-  from:        'left' | 'right';
-  to:          'left' | 'right';
-  lit:         number;
-  litColor:    string;
-  decos:       RouteDeco[];
+  zone:        ZoneInfo;
   level:       number;
-  onDecoPress: (d: RouteDeco, unlocked: boolean) => void;
+  width:       number;
+  accent:      string;
+  onPressSign: (unlocked: boolean) => void;
+  onPressDeco: (d: Decoration, unlocked: boolean) => void;
 }) {
-  const xFor = (side: 'left' | 'right') => (side === 'left' ? -52 : 52);
-  const x0 = xFor(from);
-  const x1 = xFor(to);
+  const wt = getTheme(zone.id);
+  const unlocked = level >= zone.start;
+  const conquered = level > zone.end;
 
-  // Slot list bottom -> top: tiles with decorations evenly spliced in.
-  type Slot = { kind: 'tile' } | { kind: 'deco'; deco: RouteDeco };
-  const interleaved: Slot[] = [];
-  let decoIdx = 0;
-  for (let i = 0; i < TILES_PER_ROAD; i++) {
-    interleaved.push({ kind: 'tile' });
-    const want = Math.round(((i + 1) / TILES_PER_ROAD) * decos.length);
-    while (decoIdx < want && decoIdx < decos.length) {
-      interleaved.push({ kind: 'deco', deco: decos[decoIdx]! });
-      decoIdx++;
+  const count = zone.end - zone.start + 1;
+  const stepsH = count * SPACING + PAD_V * 2;
+  const yFor = (lvl: number) =>
+    stepsH - PAD_V - SPACING / 2 - (lvl - zone.start) * SPACING;
+
+  // Road polyline through every step, extended past both edges so it
+  // meets the bridges/sign visually.
+  const points: string[] = [`${xForLevel(zone.start - 1, width)},${stepsH + 30}`];
+  for (let lvl = zone.start; lvl <= zone.end; lvl++) {
+    points.push(`${xForLevel(lvl, width)},${yFor(lvl)}`);
+  }
+  points.push(`${xForLevel(zone.end + 1, width)},${-30}`);
+
+  // Lit portion: entrance -> current step (full once conquered).
+  const litPoints: string[] = [];
+  if (unlocked) {
+    litPoints.push(points[0]!);
+    for (let lvl = zone.start; lvl <= Math.min(level, zone.end); lvl++) {
+      litPoints.push(`${xForLevel(lvl, width)},${yFor(lvl)}`);
+    }
+    if (conquered) litPoints.push(points[points.length - 1]!);
+  }
+
+  const decos = DECORATIONS.filter(
+    (d) => d.id !== 'none' && d.unlockLevel >= zone.start && d.unlockLevel <= zone.end,
+  );
+
+  const steps = [];
+  for (let lvl = zone.start; lvl <= zone.end; lvl++) {
+    const x = xForLevel(lvl, width);
+    const y = yFor(lvl);
+    const passed = lvl < level;
+    const isCurrent = lvl === level;
+    const size = isCurrent ? NODE_CURRENT : NODE;
+
+    let bg: string, border: string, num: string;
+    if (!unlocked || lvl > level) {
+      bg = unlocked ? wt.colors.surface : FOG_NODE;
+      border = unlocked ? wt.colors.muted : FOG_BORDER;
+      num = unlocked ? wt.colors.secondary : GREY_TEXT;
+    } else {
+      bg = wt.colors.accent;
+      border = isCurrent ? '#FFFFFF' : wt.colors.accent;
+      num = wt.colors.background;
+    }
+
+    steps.push(
+      <View
+        key={lvl}
+        pointerEvents="none"
+        style={[
+          styles.step,
+          {
+            width: size,
+            height: size,
+            left: x - size / 2,
+            top: y - size / 2,
+            backgroundColor: bg,
+            borderColor: border,
+            borderWidth: isCurrent ? 3 : 1.5,
+            borderRadius: isCurrent ? 10 : 8,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.stepNum,
+            { color: num, fontSize: lvl >= 100 ? 10.5 : isCurrent ? 15 : 12.5 },
+          ]}
+        >
+          {lvl}
+        </Text>
+      </View>,
+    );
+
+    if (isCurrent) {
+      const chipW = 128;
+      steps.push(
+        <View
+          key="here"
+          pointerEvents="none"
+          style={[
+            styles.hereChip,
+            {
+              backgroundColor: accent,
+              left: Math.min(Math.max(x - chipW / 2, 8), width - chipW - 8),
+              top: y - size / 2 - 30,
+              width: chipW,
+            },
+          ]}
+        >
+          <Text style={[styles.hereText, { color: OCEAN }]}>YOU ARE HERE</Text>
+        </View>,
+      );
     }
   }
 
-  // Render top -> bottom, so reverse; index from the bottom drives x
-  // interpolation and lit state.
-  const total = interleaved.length;
-  const rendered = [...interleaved].reverse();
-  let tileFromBottom = interleaved.filter((s) => s.kind === 'tile').length;
-
   return (
-    <View style={styles.road}>
-      {rendered.map((slot, i) => {
-        const fromBottom = total - 1 - i;
-        const t = (fromBottom + 1) / (total + 1);
-        const x = x0 + (x1 - x0) * t;
-        if (slot.kind === 'deco') {
-          const unlocked = slot.deco.level <= level;
+    <View style={{ backgroundColor: unlocked ? wt.colors.background : FOG_BG }}>
+      {/* Steps area */}
+      <View style={{ height: stepsH }}>
+        <Svg
+          width={width}
+          height={stepsH}
+          viewBox={`0 0 ${width} ${stepsH}`}
+          style={StyleSheet.absoluteFill}
+        >
+          <Polyline
+            points={points.join(' ')}
+            fill="none"
+            stroke={unlocked ? wt.colors.muted : FOG_PATH}
+            strokeWidth={9}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          {litPoints.length > 1 ? (
+            <Polyline
+              points={litPoints.join(' ')}
+              fill="none"
+              stroke={wt.colors.accent}
+              strokeWidth={9}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              opacity={0.85}
+            />
+          ) : null}
+        </Svg>
+        {steps}
+        {decos.map((d) => {
+          const nx = xForLevel(d.unlockLevel, width);
+          const y = yFor(d.unlockLevel);
+          const x = nx < width / 2 ? nx + 58 : nx - 58 - 30;
+          const isUnlocked = d.unlockLevel <= level;
           return (
             <Pressable
-              key={`d-${slot.deco.id}`}
+              key={d.id}
               accessibilityRole="button"
-              onPress={() => onDecoPress(slot.deco, unlocked)}
+              onPress={() => onPressDeco(d, isUnlocked)}
               style={({ pressed }) => [
                 styles.decoSquare,
                 {
-                  transform: [{ translateX: x }],
-                  borderColor: unlocked ? litColor : TILE_OFF,
+                  left: x,
+                  top: y - 15,
+                  borderColor: isUnlocked ? wt.colors.accent : FOG_BORDER,
+                  backgroundColor: unlocked ? wt.colors.surface : FOG_NODE,
                   opacity: pressed ? 0.7 : 1,
                 },
               ]}
@@ -568,23 +579,79 @@ function Road({
               <Text style={styles.decoEmoji}>✨</Text>
             </Pressable>
           );
-        }
-        tileFromBottom--;
-        const isLit = tileFromBottom < lit;
-        return (
-          <View
-            key={`t-${i}`}
+        })}
+      </View>
+
+      {/* Entrance sign: landmark art + world name */}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => onPressSign(unlocked)}
+        style={({ pressed }) => [styles.sign, { opacity: pressed ? 0.8 : 1 }]}
+      >
+        <View style={styles.signArt}>
+          <IslandArt id={zone.id} unlocked={unlocked} />
+        </View>
+        <View style={styles.signLabel}>
+          {!unlocked ? <Ionicons name="lock-closed" size={13} color={GREY_TEXT} /> : null}
+          <Text
             style={[
-              styles.tile,
+              styles.signName,
               {
-                transform: [{ translateX: x }, { rotate: '45deg' }],
-                backgroundColor: isLit ? litColor : TILE_OFF,
+                color: unlocked ? wt.colors.accent : GREY_TEXT,
+                fontFamily: wt.fonts.heavy,
               },
             ]}
-          />
-        );
-      })}
-      <Text style={[styles.wave, { transform: [{ translateX: -x1 }] }]}>≈</Text>
+            numberOfLines={1}
+          >
+            {zone.name.toUpperCase()}
+          </Text>
+          {conquered ? (
+            <Ionicons name="checkmark-circle" size={15} color={wt.colors.accent} />
+          ) : null}
+        </View>
+        <Text style={[styles.signRange, { color: unlocked ? wt.colors.secondary : GREY_TEXT }]}>
+          {zone.end > zone.start ? `LV ${zone.start} – ${zone.end}` : `LV ${zone.start}`}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Bridge: a short strip of open ocean with square stepping-stones
+// linking two worlds. Lights up once the upper world is reached.
+// ---------------------------------------------------------------------------
+
+function Bridge({
+  atLevel,
+  width,
+  crossed,
+  litColor,
+}: {
+  atLevel:  number;
+  width:    number;
+  crossed:  boolean;
+  litColor: string;
+}) {
+  const H = 66;
+  const tiles = [0.25, 0.5, 0.75];
+  return (
+    <View style={{ height: H, backgroundColor: OCEAN }}>
+      {tiles.map((t, i) => (
+        <View
+          key={i}
+          style={[
+            styles.bridgeTile,
+            {
+              left: xForLevel(atLevel - 1 + t, width) - 7,
+              top: H * (1 - t) - 7,
+              backgroundColor: crossed ? litColor : TILE_OFF,
+            },
+          ]}
+        />
+      ))}
+      <Text style={[styles.wave, { left: width * 0.16 }]}>≈</Text>
+      <Text style={[styles.wave, { left: width * 0.74, top: 14 }]}>≈</Text>
     </View>
   );
 }
@@ -596,32 +663,25 @@ const styles = StyleSheet.create({
   title:         { fontSize: 18, fontWeight: '800', letterSpacing: 0.3, color: '#E6EDF3' },
   levelChip:     { paddingHorizontal: 10, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#10222F' },
   levelChipText: { fontSize: 12, fontWeight: '800', letterSpacing: 1 },
-  scroll:        { paddingVertical: 16, paddingHorizontal: 8, paddingBottom: 48 },
 
-  beyond:        { fontSize: 12, fontWeight: '600', textAlign: 'center', marginBottom: 10, letterSpacing: 2, color: '#33475A' },
-  origin:        { fontSize: 11, fontWeight: '700', textAlign: 'center', marginTop: 18, letterSpacing: 1.5, color: '#33475A' },
+  step:          { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  stepNum:       { fontWeight: '900', includeFontPadding: false },
 
-  island:        { width: '74%', alignItems: 'center', paddingVertical: 4 },
-  islandLeft:    { alignSelf: 'flex-start' },
-  islandRight:   { alignSelf: 'flex-end' },
-  islandLabel:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, maxWidth: '96%' },
-  islandName:    { fontSize: 19, fontWeight: '900', letterSpacing: 0.5, includeFontPadding: false, flexShrink: 1 },
-  islandRange:   { fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, marginTop: 3 },
-
-  hereWrap:      { marginTop: 8, gap: 7, alignItems: 'center', width: '86%' },
-  hereRow:       { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  playerSquare:  { width: 15, height: 15, borderRadius: 3, borderWidth: 2, borderColor: '#FFFFFF' },
-  hereChip:      { paddingHorizontal: 10, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
+  hereChip:      { position: 'absolute', height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
   hereText:      { fontSize: 10.5, fontWeight: '800', letterSpacing: 1 },
-  hereTrack:     { height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: '#1D3040', alignSelf: 'stretch' },
-  hereFill:      { height: 6, borderRadius: 3 },
 
-  road:          { alignItems: 'center', paddingVertical: 6, gap: 11 },
-  tile:          { width: 13, height: 13, borderRadius: 3 },
   decoSquare:    {
-    width: 30, height: 30, borderRadius: 7, borderWidth: 1.5,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: '#0C1D2B',
+    position: 'absolute', width: 30, height: 30, borderRadius: 7, borderWidth: 1.5,
+    alignItems: 'center', justifyContent: 'center',
   },
   decoEmoji:     { fontSize: 13 },
-  wave:          { position: 'absolute', bottom: 8, fontSize: 16, color: OCEAN_WAVE, fontWeight: '700' },
+
+  sign:          { alignItems: 'center', paddingBottom: 14, paddingTop: 2 },
+  signArt:       { width: 230 },
+  signLabel:     { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '92%' },
+  signName:      { fontSize: 20, fontWeight: '900', letterSpacing: 0.5, includeFontPadding: false, flexShrink: 1 },
+  signRange:     { fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, marginTop: 3 },
+
+  bridgeTile:    { position: 'absolute', width: 14, height: 14, borderRadius: 3, transform: [{ rotate: '45deg' }] },
+  wave:          { position: 'absolute', top: 34, fontSize: 16, color: OCEAN_WAVE, fontWeight: '700' },
 });
