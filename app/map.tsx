@@ -1,23 +1,22 @@
 // YourLevel Roadmap — the world map.
 //
 // Candy-Crush-style level road: EVERY level is a numbered square step
-// on a serpentine path that winds upward through full-bleed theme
-// ZONES. You are inside each world as you walk it — the zone is
-// painted in its theme's palette with its island landmark art at the
-// entrance — and you unlock the next world by walking to the end of
-// the current one. Short ocean bridges of stepping-stones connect
-// the zones.
+// on ONE continuous serpentine road that winds from level 1 to the
+// summit without a single break. The road passes THROUGH each theme's
+// biome zone — full-bleed in that world's palette, dressed with
+// themed scenery you walk past (palms on Golden Shores, tombstones
+// and bats in the Crimson Keep, neon towers and robots in the Neon
+// City...). Each zone's island landmark + name sign sits at its
+// entrance, and the road runs right past it into the world.
 //
 // Zone states:
-//   unlocked  — full theme color, passed steps filled in accent,
-//               upcoming steps hollow
-//   locked    — fog-grey: structure, numbers and name all visible,
+//   unlocked  — full theme color; passed steps + road fill in accent
+//   locked    — fog-grey: scenery, numbers and name all visible,
 //               zero color, lock on the sign
 //
-// The player is a bigger SQUARE on their current level step with a
-// YOU ARE HERE chip. Decorations are ✨ squares parked beside the
-// step that unlocks them ("???" until reached). Auto-scrolls to the
-// player on mount.
+// The player is a bigger SQUARE on their current step with a YOU ARE
+// HERE chip. Decorations are ✨ squares beside the step that unlocks
+// them ("???" until reached). Auto-scrolls to the player on mount.
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -32,7 +31,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Ellipse, Line, Path, Polygon, Polyline, Rect } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Line, Path, Polygon, Polyline, Rect } from 'react-native-svg';
 
 import { DECORATIONS, type Decoration } from '@/constants/decorations';
 import { getTheme, THEMES, type ThemeId } from '@/constants/themes';
@@ -43,15 +42,13 @@ import { useAppStore } from '@/store/useAppStore';
 // ---------------------------------------------------------------------------
 
 const OCEAN       = '#06131D';
-const OCEAN_WAVE  = '#16293A';
 const FOG_BG      = '#0C141C';   // locked-zone ground
 const FOG_PATH    = '#1A242E';
 const FOG_NODE    = '#151C24';
 const FOG_BORDER  = '#232E39';
 const GREY_TEXT   = '#5E6B77';
-const TILE_OFF    = '#1D3040';
 
-/** Luminance-matched grey for locked-island art: structure stays,
+/** Luminance-matched grey for locked-zone art: structure stays,
  *  color goes. Compressed into a dark band so it reads as fog. */
 function toGrey(hex: string): string {
   const h = hex.replace('#', '');
@@ -64,6 +61,11 @@ function toGrey(hex: string): string {
   const s = v.toString(16).padStart(2, '0');
   return `#${s}${s}${s}`;
 }
+
+/** Deterministic 0..1 jitter from a level number (stable across
+ *  renders — no Math.random so the map never reshuffles). */
+const frac = (n: number) => n - Math.floor(n);
+const jitter = (lvl: number, salt: number) => frac(Math.abs(Math.sin(lvl * 12.9898 + salt * 78.233)) * 43758.5453);
 
 // ---------------------------------------------------------------------------
 // Island landmark art. One SVG per theme, 240x130 viewBox. `C()` maps
@@ -279,13 +281,78 @@ function IslandArt({ id, unlocked }: { id: ThemeId; unlocked: boolean }) {
 }
 
 // ---------------------------------------------------------------------------
+// Roadside scenery. 3 prop variants per theme, drawn around origin
+// (base at 0,0, art extends upward to about -44). Rendered inside the
+// zone's single SVG so hundreds of props stay cheap.
+// ---------------------------------------------------------------------------
+
+function propArt(id: ThemeId, variant: number, C: (c: string) => string) {
+  switch (id) {
+    case 'default':
+      if (variant === 0) return (<><Rect x={-3} y={-16} width={6} height={16} fill={C('#7A5A3A')} /><Circle cx={0} cy={-24} r={12} fill={C('#3E8E4F')} /><Circle cx={-8} cy={-18} r={7} fill={C('#357945')} /></>);
+      if (variant === 1) return (<><Ellipse cx={0} cy={-5} rx={11} ry={7} fill={C('#5B6B75')} /><Ellipse cx={9} cy={-3} rx={5} ry={4} fill={C('#48545D')} /></>);
+      return (<><Rect x={-2} y={-22} width={4} height={22} fill={C('#8A6A45')} /><Rect x={-13} y={-30} width={26} height={10} rx={2} fill={C('#4A90E2')} /></>);
+    case 'paper': // origami crane / folded hill / paper plane
+      if (variant === 0) return (<><Polygon points="-12,0 0,-18 4,-6" fill={C('#FFFFFF')} /><Polygon points="4,-6 14,-14 10,0" fill={C('#E3E8F2')} /><Line x1={-12} y1={0} x2={10} y2={0} stroke={C('#2563EB')} strokeWidth={1.2} /></>);
+      if (variant === 1) return (<><Polygon points="-16,0 0,-20 16,0" fill={C('#FFFFFF')} /><Line x1={0} y1={-20} x2={0} y2={0} stroke={C('#2563EB')} strokeWidth={1.2} /></>);
+      return (<><Polygon points="-14,-6 14,-14 -2,0" fill={C('#FFFFFF')} /><Polygon points="-2,0 14,-14 2,-4" fill={C('#CBD5E1')} /></>);
+    case 'calm': // palm / shell / umbrella
+      if (variant === 0) return (<><Path d="M0 0 Q-3 -14 2 -24" stroke={C('#8A6A45')} strokeWidth={4} fill="none" /><Path d="M2 -24 Q-10 -30 -16 -24 M2 -24 Q0 -36 -8 -38 M2 -24 Q12 -32 18 -26 M2 -24 Q14 -22 18 -14" stroke={C('#5B9C6E')} strokeWidth={3} fill="none" /></>);
+      if (variant === 1) return (<><Path d="M-8 0 A8 8 0 0 1 8 0 Z" fill={C('#D4A843')} /><Line x1={0} y1={0} x2={0} y2={-7} stroke={C('#B8923A')} strokeWidth={1.2} /><Line x1={-4} y1={0} x2={-3} y2={-5} stroke={C('#B8923A')} strokeWidth={1.2} /><Line x1={4} y1={0} x2={3} y2={-5} stroke={C('#B8923A')} strokeWidth={1.2} /></>);
+      return (<><Line x1={0} y1={0} x2={0} y2={-22} stroke={C('#8A6A45')} strokeWidth={2.5} /><Path d="M-16 -22 A16 9 0 0 1 16 -22 Z" fill={C('#C95B5B')} /><Path d="M-16 -22 A16 9 0 0 1 0 -22 Z" fill={C('#F0EFE2')} /></>);
+    case 'slate': // crystal / mini moon / pool
+      if (variant === 0) return (<><Polygon points="-8,0 -4,-20 2,0" fill={C('#64748B')} /><Polygon points="0,0 6,-14 12,0" fill={C('#38BDF8')} opacity={0.85} /></>);
+      if (variant === 1) return (<><Circle cx={0} cy={-14} r={10} fill={C('#BFE7FB')} /><Circle cx={-3} cy={-17} r={2.5} fill={C('#93CBE8')} /><Circle cx={4} cy={-11} r={1.8} fill={C('#93CBE8')} /></>);
+      return (<><Ellipse cx={0} cy={-3} rx={14} ry={5} fill={C('#38BDF8')} opacity={0.8} /><Ellipse cx={0} cy={-3} rx={8} ry={2.6} fill={C('#7DD3FC')} opacity={0.7} /></>);
+    case 'green': // bush / kiwi slice / sprout
+      if (variant === 0) return (<><Circle cx={-6} cy={-8} r={9} fill={C('#4D7C0F')} /><Circle cx={6} cy={-9} r={10} fill={C('#65A30D')} /><Circle cx={0} cy={-14} r={8} fill={C('#3F6212')} /></>);
+      if (variant === 1) return (<><Circle cx={0} cy={-10} r={10} fill={C('#84CC16')} /><Circle cx={0} cy={-10} r={7} fill={C('#F7FEE7')} /><Circle cx={0} cy={-10} r={2} fill={C('#365314')} /></>);
+      return (<><Path d="M0 0 Q0 -10 0 -14" stroke={C('#4D7C0F')} strokeWidth={2.5} fill="none" /><Path d="M0 -14 Q-8 -16 -10 -22" stroke={C('#65A30D')} strokeWidth={3} fill="none" /><Path d="M0 -14 Q8 -18 9 -24" stroke={C('#65A30D')} strokeWidth={3} fill="none" /></>);
+    case 'vapor': // neon palm / cassette / grid pyramid
+      if (variant === 0) return (<><Path d="M0 0 Q-2 -14 2 -22" stroke={C('#FF71CE')} strokeWidth={3} fill="none" /><Path d="M2 -22 Q-8 -28 -14 -22 M2 -22 Q2 -34 -6 -36 M2 -22 Q12 -30 16 -24" stroke={C('#01CDFE')} strokeWidth={2.5} fill="none" /></>);
+      if (variant === 1) return (<><Rect x={-13} y={-16} width={26} height={16} rx={2} fill={C('#2E1A47')} /><Rect x={-13} y={-16} width={26} height={16} rx={2} fill="none" stroke={C('#FF71CE')} strokeWidth={1.5} /><Circle cx={-6} cy={-8} r={3} fill={C('#01CDFE')} /><Circle cx={6} cy={-8} r={3} fill={C('#01CDFE')} /></>);
+      return (<><Polygon points="-14,0 0,-22 14,0" fill="none" stroke={C('#01CDFE')} strokeWidth={1.5} /><Line x1={-7} y1={-11} x2={7} y2={-11} stroke={C('#01CDFE')} strokeWidth={1.2} /><Line x1={0} y1={-22} x2={0} y2={0} stroke={C('#FF71CE')} strokeWidth={1.2} /></>);
+    case 'sunset': // cactus / dune / soaring bird
+      if (variant === 0) return (<><Rect x={-3} y={-24} width={6} height={24} rx={3} fill={C('#5B7C3A')} /><Rect x={-12} y={-18} width={5} height={10} rx={2.5} fill={C('#5B7C3A')} /><Rect x={-12} y={-11} width={9} height={4} fill={C('#5B7C3A')} /><Rect x={7} y={-21} width={5} height={9} rx={2.5} fill={C('#5B7C3A')} /><Rect x={3} y={-15} width={9} height={4} fill={C('#5B7C3A')} /></>);
+      if (variant === 1) return (<><Path d="M-18 0 Q-4 -12 18 0 Z" fill={C('#C77B3F')} /><Path d="M-8 0 Q4 -7 18 0 Z" fill={C('#A05A2C')} /></>);
+      return (<><Path d="M-10 -22 Q-4 -28 0 -22 Q4 -28 10 -22" stroke={C('#292524')} strokeWidth={2.5} fill="none" /><Path d="M2 -14 Q6 -18 9 -14" stroke={C('#292524')} strokeWidth={2} fill="none" /></>);
+    case 'vampire': // tombstone / bat / dead tree
+      if (variant === 0) return (<><Path d="M-8 0 L-8 -14 A8 8 0 0 1 8 -14 L8 0 Z" fill={C('#2A0A10')} /><Line x1={0} y1={-14} x2={0} y2={-6} stroke={C('#DC2626')} strokeWidth={2} /><Line x1={-4} y1={-11} x2={4} y2={-11} stroke={C('#DC2626')} strokeWidth={2} /></>);
+      if (variant === 1) return (<><Path d="M-14 -20 Q-8 -26 -3 -20 Q0 -24 3 -20 Q8 -26 14 -20 Q8 -18 6 -13 Q0 -17 -6 -13 Q-8 -18 -14 -20 Z" fill={C('#350d14')} /><Circle cx={-2} cy={-19} r={1} fill={C('#DC2626')} /><Circle cx={2} cy={-19} r={1} fill={C('#DC2626')} /></>);
+      return (<><Path d="M0 0 L0 -18 M0 -12 L-8 -20 M0 -14 L7 -22 M-8 -20 L-11 -26 M7 -22 L11 -26" stroke={C('#3A1218')} strokeWidth={2.5} fill="none" /></>);
+    case 'royal': // pillar / crown / banner
+      if (variant === 0) return (<><Rect x={-5} y={-24} width={10} height={24} fill={C('#3A3330')} /><Rect x={-8} y={-28} width={16} height={5} fill={C('#D4AF37')} /><Rect x={-8} y={-2} width={16} height={3} fill={C('#D4AF37')} /></>);
+      if (variant === 1) return (<><Path d="M-10 -8 L-7 -16 L-2 -10 L2 -18 L6 -10 L10 -16 L9 -4 L-9 -4 Z" fill={C('#FFD700')} /><Circle cx={-7} cy={-17} r={1.6} fill={C('#D4AF37')} /><Circle cx={2} cy={-19} r={1.6} fill={C('#D4AF37')} /><Circle cx={10} cy={-17} r={1.6} fill={C('#D4AF37')} /></>);
+      return (<><Line x1={0} y1={0} x2={0} y2={-26} stroke={C('#3A3330')} strokeWidth={2.5} /><Polygon points="0,-26 16,-22 0,-16" fill={C('#D4AF37')} /></>);
+    case 'solo': // crystal cluster / rune circle / shadow gate
+      if (variant === 0) return (<><Polygon points="-10,0 -5,-18 1,0" fill={C('#6D46C4')} /><Polygon points="-1,0 5,-24 11,0" fill={C('#8B5CF6')} /><Circle cx={5} cy={-26} r={1.6} fill={C('#22D3EE')} /></>);
+      if (variant === 1) return (<><Circle cx={0} cy={-11} r={10} fill="none" stroke={C('#8B5CF6')} strokeWidth={1.6} /><Circle cx={0} cy={-11} r={5.5} fill="none" stroke={C('#22D3EE')} strokeWidth={1.2} /><Circle cx={0} cy={-11} r={1.6} fill={C('#22D3EE')} /></>);
+      return (<><Path d="M-9 0 L-9 -16 A9 9 0 0 1 9 -16 L9 0" fill="none" stroke={C('#8B5CF6')} strokeWidth={2.5} /><Line x1={0} y1={-6} x2={0} y2={-14} stroke={C('#22D3EE')} strokeWidth={1.5} /></>);
+    case 'inferno': // flame / lava pool / rock spikes
+      if (variant === 0) return (<><Path d="M0 0 Q-8 -8 -4 -16 Q-1 -10 2 -14 Q6 -20 4 -8 Q8 -6 5 -2 Z" fill={C('#DC2626')} /><Path d="M0 -2 Q-3 -7 0 -11 Q3 -7 2 -3 Z" fill={C('#FB923C')} /></>);
+      if (variant === 1) return (<><Ellipse cx={0} cy={-3} rx={13} ry={5} fill={C('#DC2626')} /><Ellipse cx={2} cy={-3} rx={6} ry={2.4} fill={C('#FB923C')} /><Circle cx={-6} cy={-8} r={1.6} fill={C('#FB923C')} /></>);
+      return (<><Polygon points="-12,0 -7,-16 -2,0" fill={C('#3F3F46')} /><Polygon points="0,0 6,-22 12,0" fill={C('#27272A')} /><Polygon points="4,-14 6,-22 8,-14" fill={C('#DC2626')} /></>);
+    case 'galaxy': // ringed planet / star cluster / comet
+      if (variant === 0) return (<><Circle cx={0} cy={-12} r={8} fill={C('#4338CA')} /><Ellipse cx={0} cy={-12} rx={14} ry={4} fill="none" stroke={C('#22D3EE')} strokeWidth={1.8} /></>);
+      if (variant === 1) return (<><Circle cx={-8} cy={-16} r={2} fill={C('#E0E7FF')} /><Circle cx={2} cy={-8} r={1.5} fill={C('#E0E7FF')} /><Circle cx={8} cy={-20} r={2.4} fill={C('#22D3EE')} /><Circle cx={-2} cy={-24} r={1.3} fill={C('#E0E7FF')} /></>);
+      return (<><Circle cx={6} cy={-18} r={3.5} fill={C('#22D3EE')} /><Path d="M6 -18 L-14 -6" stroke={C('#22D3EE')} strokeWidth={2} opacity={0.6} /><Path d="M6 -16 L-9 -7" stroke={C('#E0E7FF')} strokeWidth={1.2} opacity={0.5} /></>);
+    case 'cyberpunk': // neon tower / robot firing / hover drone
+      if (variant === 0) return (<><Rect x={-9} y={-32} width={18} height={32} fill={C('#23245A')} /><Line x1={-9} y1={-32} x2={9} y2={-32} stroke={C('#00FFFF')} strokeWidth={2} /><Line x1={0} y1={-32} x2={0} y2={-40} stroke={C('#FF00FF')} strokeWidth={1.6} /><Circle cx={0} cy={-41} r={1.6} fill={C('#FF00FF')} /><Rect x={-5} y={-26} width={3.6} height={4} fill={C('#00FFFF')} /><Rect x={2} y={-19} width={3.6} height={4} fill={C('#FF00FF')} /><Rect x={-5} y={-12} width={3.6} height={4} fill={C('#00FFFF')} /></>);
+      if (variant === 1) return (<><Rect x={-7} y={-16} width={14} height={12} rx={2} fill={C('#3A3B7A')} /><Rect x={-5} y={-24} width={10} height={8} rx={2} fill={C('#23245A')} /><Rect x={-3} y={-21} width={2.6} height={2.6} fill={C('#00FFFF')} /><Rect x={1} y={-21} width={2.6} height={2.6} fill={C('#00FFFF')} /><Rect x={-11} y={-13} width={4} height={2.6} fill={C('#3A3B7A')} /><Rect x={7} y={-14} width={5} height={2.6} fill={C('#3A3B7A')} /><Line x1={12} y1={-12.7} x2={24} y2={-12.7} stroke={C('#FF00FF')} strokeWidth={1.8} /><Circle cx={26} cy={-12.7} r={1.4} fill={C('#FF00FF')} /><Rect x={-6} y={-4} width={4} height={4} fill={C('#23245A')} /><Rect x={2} y={-4} width={4} height={4} fill={C('#23245A')} /></>);
+      return (<><Ellipse cx={0} cy={-22} rx={9} ry={4} fill={C('#3A3B7A')} /><Rect x={-3} y={-21} width={6} height={3} fill={C('#00FFFF')} /><Line x1={0} y1={-18} x2={0} y2={-6} stroke={C('#00FFFF')} strokeWidth={1.2} opacity={0.7} /><Polygon points="-4,-6 4,-6 0,0" fill={C('#00FFFF')} opacity={0.4} /></>);
+    default:
+      return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Road geometry
 // ---------------------------------------------------------------------------
 
-const SPACING      = 56;   // vertical px per level step
-const NODE         = 34;   // level square size
-const NODE_CURRENT = 46;   // player's square size
-const PAD_V        = 20;   // breathing room above/below a zone's steps
+const SPACING  = 56;    // vertical px per level step
+const NODE     = 34;    // level square size
+const NODE_CUR = 46;    // player's square size
+const ENTRANCE = 172;   // zone-entrance strip (landmark + name sign)
 
 /** Serpentine x for a level. Continuous across zones so the road
  *  never jumps at a border. */
@@ -309,6 +376,13 @@ function buildZones(playerLevel: number): ZoneInfo[] {
   });
 }
 
+/** Zone height: steps live in the top portion, the entrance strip
+ *  (landmark + sign) fills the bottom. */
+const zoneHeight = (z: ZoneInfo) => (z.end - z.start + 1) * SPACING + ENTRANCE;
+/** A step's y within its zone. */
+const stepY = (z: ZoneInfo, lvl: number) =>
+  (z.end - z.start + 1) * SPACING - (lvl - z.start) * SPACING - SPACING / 2;
+
 // ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
@@ -325,14 +399,7 @@ export default function MapScreen() {
   const level = profile?.level ?? 1;
   const zones = useMemo(() => buildZones(level), [level]);
   const descending = useMemo(() => [...zones].reverse(), [zones]);
-
-  // The zone the player stands in + their step's y within it, so the
-  // wrapper's onLayout can convert to an absolute scroll offset.
   const hostZone = zones.find((z) => level >= z.start && level <= z.end) ?? null;
-  const nodeYWithin = (zone: ZoneInfo) => {
-    const stepsH = (zone.end - zone.start + 1) * SPACING + PAD_V * 2;
-    return stepsH - PAD_V - SPACING / 2 - (level - zone.start) * SPACING;
-  };
 
   useEffect(() => {
     if (currentY == null) return;
@@ -360,42 +427,33 @@ export default function MapScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} ref={scrollRef}>
-        {descending.map((zone, di) => {
-          const zoneBelow = descending[di + 1] ?? null;
-          return (
-            <View
-              key={zone.id}
-              onLayout={
-                hostZone?.id === zone.id
-                  ? (e) => setCurrentY(e.nativeEvent.layout.y + nodeYWithin(zone))
-                  : undefined
-              }
-            >
-              <Zone
-                zone={zone}
-                level={level}
-                width={width}
-                accent={theme.colors.accent}
-                onPressSign={(unlocked) => {
-                  if (unlocked) router.push('/settings/fonts');
-                  else Alert.alert(zone.name, `Reach Level ${zone.start} to enter this world.`);
-                }}
-                onPressDeco={(d, unlocked) => {
-                  if (unlocked) router.push('/settings/decorations');
-                  else Alert.alert('Mystery unlock', `Reach Level ${d.unlockLevel} to reveal it.`);
-                }}
-              />
-              {zoneBelow ? (
-                <Bridge
-                  atLevel={zone.start}
-                  width={width}
-                  crossed={level >= zone.start}
-                  litColor={getTheme(zone.id).colors.accent}
-                />
-              ) : null}
-            </View>
-          );
-        })}
+        {descending.map((zone, di) => (
+          <View
+            key={zone.id}
+            onLayout={
+              hostZone?.id === zone.id
+                ? (e) => setCurrentY(e.nativeEvent.layout.y + stepY(zone, level))
+                : undefined
+            }
+          >
+            <Zone
+              zone={zone}
+              level={level}
+              width={width}
+              accent={theme.colors.accent}
+              hasAbove={di > 0}
+              hasBelow={di < descending.length - 1}
+              onPressSign={(unlocked) => {
+                if (unlocked) router.push('/settings/fonts');
+                else Alert.alert(zone.name, `Reach Level ${zone.start} to enter this world.`);
+              }}
+              onPressDeco={(d, unlocked) => {
+                if (unlocked) router.push('/settings/decorations');
+                else Alert.alert('Mystery unlock', `Reach Level ${d.unlockLevel} to reveal it.`);
+              }}
+            />
+          </View>
+        ))}
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
@@ -403,9 +461,9 @@ export default function MapScreen() {
 }
 
 // ---------------------------------------------------------------------------
-// Zone: one full-bleed world. Steps wind upward over the theme's
-// ground color; the island landmark + name sign sit at the entrance
-// (bottom). The road and passed steps light up in the world's accent.
+// Zone: one full-bleed world. The continuous road enters at the
+// bottom (past the landmark + sign), winds up through the scenery,
+// and exits at the top into the next world.
 // ---------------------------------------------------------------------------
 
 function Zone({
@@ -413,6 +471,8 @@ function Zone({
   level,
   width,
   accent,
+  hasAbove,
+  hasBelow,
   onPressSign,
   onPressDeco,
 }: {
@@ -420,47 +480,75 @@ function Zone({
   level:       number;
   width:       number;
   accent:      string;
+  hasAbove:    boolean;
+  hasBelow:    boolean;
   onPressSign: (unlocked: boolean) => void;
   onPressDeco: (d: Decoration, unlocked: boolean) => void;
 }) {
   const wt = getTheme(zone.id);
   const unlocked = level >= zone.start;
   const conquered = level > zone.end;
+  const C = (c: string) => (unlocked ? c : toGrey(c));
 
-  const count = zone.end - zone.start + 1;
-  const stepsH = count * SPACING + PAD_V * 2;
-  const yFor = (lvl: number) =>
-    stepsH - PAD_V - SPACING / 2 - (lvl - zone.start) * SPACING;
+  const H = zoneHeight(zone);
+  const yFor = (lvl: number) => stepY(zone, lvl);
 
-  // Road polyline through every step, extended past both edges so it
-  // meets the bridges/sign visually.
-  const points: string[] = [`${xForLevel(zone.start - 1, width)},${stepsH + 30}`];
-  for (let lvl = zone.start; lvl <= zone.end; lvl++) {
-    points.push(`${xForLevel(lvl, width)},${yFor(lvl)}`);
-  }
-  points.push(`${xForLevel(zone.end + 1, width)},${-30}`);
+  // Road polyline. Neighbor steps (start-1 below / end+1 above) are
+  // included at their true global positions so the visible segments
+  // in adjacent zones join into one unbroken line.
+  const pt = (lvl: number, y: number) => `${xForLevel(lvl, width)},${y}`;
+  const points: string[] = [];
+  if (hasBelow) points.push(pt(zone.start - 1, H + SPACING / 2));
+  for (let lvl = zone.start; lvl <= zone.end; lvl++) points.push(pt(lvl, yFor(lvl)));
+  if (hasAbove) points.push(pt(zone.end + 1, -(ENTRANCE + SPACING / 2)));
 
-  // Lit portion: entrance -> current step (full once conquered).
+  // Lit portion: same line, stopped at the player's step.
   const litPoints: string[] = [];
   if (unlocked) {
-    litPoints.push(points[0]!);
+    if (hasBelow) litPoints.push(pt(zone.start - 1, H + SPACING / 2));
     for (let lvl = zone.start; lvl <= Math.min(level, zone.end); lvl++) {
-      litPoints.push(`${xForLevel(lvl, width)},${yFor(lvl)}`);
+      litPoints.push(pt(lvl, yFor(lvl)));
     }
-    if (conquered) litPoints.push(points[points.length - 1]!);
+    if (conquered && hasAbove) litPoints.push(pt(zone.end + 1, -(ENTRANCE + SPACING / 2)));
   }
 
-  const decos = DECORATIONS.filter(
-    (d) => d.id !== 'none' && d.unlockLevel >= zone.start && d.unlockLevel <= zone.end,
-  );
+  // Roadside scenery: one themed prop per level on the free side of
+  // the road, plus faint ambient specks. All inside the one SVG.
+  const scenery = [];
+  for (let lvl = zone.start; lvl <= zone.end; lvl++) {
+    const nx = xForLevel(lvl, width);
+    const y = yFor(lvl);
+    const off = 84 + jitter(lvl, 1) * 42;
+    const px = nx < width / 2
+      ? Math.min(nx + off, width - 30)
+      : Math.max(nx - off, 30);
+    const py = y + 12 + (jitter(lvl, 2) - 0.5) * 22;
+    const s = 0.8 + jitter(lvl, 3) * 0.5;
+    scenery.push(
+      <G key={`p-${lvl}`} transform={`translate(${px} ${py}) scale(${s})`} opacity={0.95}>
+        {propArt(zone.id, lvl % 3, C)}
+      </G>,
+    );
+    // Ambient speck on the road side for texture.
+    scenery.push(
+      <Circle
+        key={`a-${lvl}`}
+        cx={jitter(lvl, 4) * width}
+        cy={y + (jitter(lvl, 5) - 0.5) * SPACING}
+        r={1.2 + jitter(lvl, 6) * 1.4}
+        fill={C(wt.colors.muted)}
+        opacity={0.55}
+      />,
+    );
+  }
 
+  // Level steps + player marker (RN views over the SVG).
   const steps = [];
   for (let lvl = zone.start; lvl <= zone.end; lvl++) {
     const x = xForLevel(lvl, width);
     const y = yFor(lvl);
-    const passed = lvl < level;
     const isCurrent = lvl === level;
-    const size = isCurrent ? NODE_CURRENT : NODE;
+    const size = isCurrent ? NODE_CUR : NODE;
 
     let bg: string, border: string, num: string;
     if (!unlocked || lvl > level) {
@@ -524,82 +612,81 @@ function Zone({
     }
   }
 
+  const decos = DECORATIONS.filter(
+    (d) => d.id !== 'none' && d.unlockLevel >= zone.start && d.unlockLevel <= zone.end,
+  );
+
   return (
-    <View style={{ backgroundColor: unlocked ? wt.colors.background : FOG_BG }}>
-      {/* Steps area */}
-      <View style={{ height: stepsH }}>
-        <Svg
-          width={width}
-          height={stepsH}
-          viewBox={`0 0 ${width} ${stepsH}`}
-          style={StyleSheet.absoluteFill}
-        >
+    <View style={{ height: H, backgroundColor: unlocked ? wt.colors.background : FOG_BG }}>
+      {/* Landmark art at the entrance (bottom), behind the road. */}
+      <View pointerEvents="none" style={[styles.signArt, { top: H - ENTRANCE + 2, left: (width - 230) / 2 }]}>
+        <IslandArt id={zone.id} unlocked={unlocked} />
+      </View>
+
+      {/* Scenery + road in ONE svg. */}
+      <Svg width={width} height={H} viewBox={`0 0 ${width} ${H}`} style={StyleSheet.absoluteFill}>
+        {scenery}
+        <Polyline
+          points={points.join(' ')}
+          fill="none"
+          stroke={unlocked ? wt.colors.muted : FOG_PATH}
+          strokeWidth={9}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {litPoints.length > 1 ? (
           <Polyline
-            points={points.join(' ')}
+            points={litPoints.join(' ')}
             fill="none"
-            stroke={unlocked ? wt.colors.muted : FOG_PATH}
+            stroke={wt.colors.accent}
             strokeWidth={9}
             strokeLinejoin="round"
             strokeLinecap="round"
+            opacity={0.85}
           />
-          {litPoints.length > 1 ? (
-            <Polyline
-              points={litPoints.join(' ')}
-              fill="none"
-              stroke={wt.colors.accent}
-              strokeWidth={9}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              opacity={0.85}
-            />
-          ) : null}
-        </Svg>
-        {steps}
-        {decos.map((d) => {
-          const nx = xForLevel(d.unlockLevel, width);
-          const y = yFor(d.unlockLevel);
-          const x = nx < width / 2 ? nx + 58 : nx - 58 - 30;
-          const isUnlocked = d.unlockLevel <= level;
-          return (
-            <Pressable
-              key={d.id}
-              accessibilityRole="button"
-              onPress={() => onPressDeco(d, isUnlocked)}
-              style={({ pressed }) => [
-                styles.decoSquare,
-                {
-                  left: x,
-                  top: y - 15,
-                  borderColor: isUnlocked ? wt.colors.accent : FOG_BORDER,
-                  backgroundColor: unlocked ? wt.colors.surface : FOG_NODE,
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <Text style={styles.decoEmoji}>✨</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+        ) : null}
+      </Svg>
 
-      {/* Entrance sign: landmark art + world name */}
+      {steps}
+
+      {decos.map((d) => {
+        const nx = xForLevel(d.unlockLevel, width);
+        const y = yFor(d.unlockLevel);
+        const x = nx < width / 2 ? nx + 46 : nx - 46 - 30;
+        const isUnlocked = d.unlockLevel <= level;
+        return (
+          <Pressable
+            key={d.id}
+            accessibilityRole="button"
+            onPress={() => onPressDeco(d, isUnlocked)}
+            style={({ pressed }) => [
+              styles.decoSquare,
+              {
+                left: x,
+                top: y - 15,
+                borderColor: isUnlocked ? wt.colors.accent : FOG_BORDER,
+                backgroundColor: unlocked ? wt.colors.surface : FOG_NODE,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Text style={styles.decoEmoji}>✨</Text>
+          </Pressable>
+        );
+      })}
+
+      {/* Name sign under the landmark. */}
       <Pressable
         accessibilityRole="button"
         onPress={() => onPressSign(unlocked)}
-        style={({ pressed }) => [styles.sign, { opacity: pressed ? 0.8 : 1 }]}
+        style={({ pressed }) => [styles.sign, { top: H - 42, opacity: pressed ? 0.75 : 1 }]}
       >
-        <View style={styles.signArt}>
-          <IslandArt id={zone.id} unlocked={unlocked} />
-        </View>
         <View style={styles.signLabel}>
           {!unlocked ? <Ionicons name="lock-closed" size={13} color={GREY_TEXT} /> : null}
           <Text
             style={[
               styles.signName,
-              {
-                color: unlocked ? wt.colors.accent : GREY_TEXT,
-                fontFamily: wt.fonts.heavy,
-              },
+              { color: unlocked ? wt.colors.accent : GREY_TEXT, fontFamily: wt.fonts.heavy },
             ]}
             numberOfLines={1}
           >
@@ -608,50 +695,11 @@ function Zone({
           {conquered ? (
             <Ionicons name="checkmark-circle" size={15} color={wt.colors.accent} />
           ) : null}
+          <Text style={[styles.signRange, { color: unlocked ? wt.colors.secondary : GREY_TEXT }]}>
+            {zone.end > zone.start ? ` LV ${zone.start}–${zone.end}` : ` LV ${zone.start}`}
+          </Text>
         </View>
-        <Text style={[styles.signRange, { color: unlocked ? wt.colors.secondary : GREY_TEXT }]}>
-          {zone.end > zone.start ? `LV ${zone.start} – ${zone.end}` : `LV ${zone.start}`}
-        </Text>
       </Pressable>
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Bridge: a short strip of open ocean with square stepping-stones
-// linking two worlds. Lights up once the upper world is reached.
-// ---------------------------------------------------------------------------
-
-function Bridge({
-  atLevel,
-  width,
-  crossed,
-  litColor,
-}: {
-  atLevel:  number;
-  width:    number;
-  crossed:  boolean;
-  litColor: string;
-}) {
-  const H = 66;
-  const tiles = [0.25, 0.5, 0.75];
-  return (
-    <View style={{ height: H, backgroundColor: OCEAN }}>
-      {tiles.map((t, i) => (
-        <View
-          key={i}
-          style={[
-            styles.bridgeTile,
-            {
-              left: xForLevel(atLevel - 1 + t, width) - 7,
-              top: H * (1 - t) - 7,
-              backgroundColor: crossed ? litColor : TILE_OFF,
-            },
-          ]}
-        />
-      ))}
-      <Text style={[styles.wave, { left: width * 0.16 }]}>≈</Text>
-      <Text style={[styles.wave, { left: width * 0.74, top: 14 }]}>≈</Text>
     </View>
   );
 }
@@ -676,12 +724,9 @@ const styles = StyleSheet.create({
   },
   decoEmoji:     { fontSize: 13 },
 
-  sign:          { alignItems: 'center', paddingBottom: 14, paddingTop: 2 },
-  signArt:       { width: 230 },
+  signArt:       { position: 'absolute', width: 230 },
+  sign:          { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   signLabel:     { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '92%' },
   signName:      { fontSize: 20, fontWeight: '900', letterSpacing: 0.5, includeFontPadding: false, flexShrink: 1 },
-  signRange:     { fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2, marginTop: 3 },
-
-  bridgeTile:    { position: 'absolute', width: 14, height: 14, borderRadius: 3, transform: [{ rotate: '45deg' }] },
-  wave:          { position: 'absolute', top: 34, fontSize: 16, color: OCEAN_WAVE, fontWeight: '700' },
+  signRange:     { fontSize: 10.5, fontWeight: '800', letterSpacing: 1.2 },
 });
