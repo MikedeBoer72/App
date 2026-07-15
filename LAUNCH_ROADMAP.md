@@ -91,10 +91,13 @@ MIGRATION 008 required + npm install (react-native-view-shot).
 - XP curve re-tuned (cheaper): 1-4=300, 5-19=500, 20-99=750, 100+=1000
   per level. Existing accounts silently re-level upward from total_xp
   on first load (never downward)
-- /map rebuilt as the ISLAND WORLD MAP: one SVG island per theme,
-  locked = grey silhouette + name, unlocked = colored biome, square
-  stepping-stone roads that light up with progress, square player
-  marker + YOU ARE HERE on the current island
+- /map rebuilt as the BIOME ROADMAP: one continuous serpentine road
+  through full-bleed themed biomes (no island icons) — hand-tuned
+  terrain + wide bordered road + dotted trail per theme, dense
+  roadside scenery on both sides, HERO landmark structures every ~4
+  levels (windmill, beach hut, castle tower, arcade, rocket, neon
+  mega-tower...), world-gate banner at each biome entrance, locked
+  worlds render in fog-grey
 
 ## ⚠️ NEW SINCE LAST BUILD (needs `npm install` + migration 006 + rebuild)
 
