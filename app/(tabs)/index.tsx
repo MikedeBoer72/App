@@ -188,6 +188,13 @@ export default function Dashboard() {
     }, 1600);
   }
 
+  // Any dismissal of the level-up celebration lands on the roadmap,
+  // where the auto-scroll centers the freshly unlocked step.
+  function closeLevelUpToMap() {
+    clearLevelUpEvent();
+    router.push('/map');
+  }
+
   // Off-screen themed card captured into the iOS share sheet.
   const shareCardRef = useRef<View>(null);
   async function shareProgress() {
@@ -601,14 +608,15 @@ export default function Dashboard() {
         </Text>
       </NestableScrollContainer>
 
-      {/* Level-up celebration */}
+      {/* Level-up celebration. Every way out lands on the roadmap so
+          the player sees their new step light up on the world map. */}
       <Modal
         transparent
         visible={levelUpEvent != null}
         animationType="fade"
-        onRequestClose={clearLevelUpEvent}
+        onRequestClose={closeLevelUpToMap}
       >
-        <Pressable style={styles.modalRoot} onPress={clearLevelUpEvent}>
+        <Pressable style={styles.modalRoot} onPress={closeLevelUpToMap}>
           {(() => {
             // World unlocked -> full-screen takeover in the NEW theme's
             // identity, confetti in ITS palette. Otherwise the regular
@@ -635,9 +643,9 @@ export default function Dashboard() {
                     worldTheme={worldTheme}
                     onEnter={() => {
                       void setTheme(worldTheme.id);
-                      clearLevelUpEvent();
+                      closeLevelUpToMap();
                     }}
-                    onDismiss={clearLevelUpEvent}
+                    onDismiss={closeLevelUpToMap}
                     onShare={shareProgress}
                   />
                 ) : levelUpEvent ? (
@@ -646,11 +654,11 @@ export default function Dashboard() {
                     theme={theme}
                     onApplyTheme={(id) => {
                       void setTheme(id);
-                      clearLevelUpEvent();
+                      closeLevelUpToMap();
                     }}
                     onApplyDecoration={(id) => {
                       void setDecoration(id);
-                      clearLevelUpEvent();
+                      closeLevelUpToMap();
                     }}
                     onShare={shareProgress}
                   />

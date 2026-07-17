@@ -91,6 +91,16 @@ MIGRATION 008 required + npm install (react-native-view-shot).
 - XP curve re-tuned (cheaper): 1-4=300, 5-19=500, 20-99=750, 100+=1000
   per level. Existing accounts silently re-level upward from total_xp
   on first load (never downward)
+- Calm theme renamed to "Sand": light sandy-yellow palette, dark-gold
+  accent kept (id stays 'calm' so saved profiles keep working)
+- Level-up celebration now lands on /map when dismissed, auto-scrolled
+  to the freshly unlocked step
+- Map landscape pass: full-width ridge bands (dune crests, mountain
+  ranges, canopy, skylines...), meandering rivers (oasis water on
+  Sand, lava on Inferno, stardust on Galaxy), ground-texture marks,
+  a 6th creature/extra prop per biome (camel, parrot, cow skull,
+  coffin, shadow soldier, satellite, hover car...) and a mid-size
+  prop every other level
 - /map rebuilt as the BIOME ROADMAP: one continuous serpentine road
   through full-bleed themed biomes (no island icons) — hand-tuned
   terrain + wide bordered road + dotted trail per theme, dense
