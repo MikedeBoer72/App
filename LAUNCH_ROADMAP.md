@@ -95,6 +95,12 @@ MIGRATION 008 required + npm install (react-native-view-shot).
   accent kept (id stays 'calm' so saved profiles keep working)
 - Level-up celebration now lands on /map when dismissed, auto-scrolled
   to the freshly unlocked step
+- Map ART pass (v6, iterated against candy-game reference maps via a
+  browser screenshot harness): smooth bezier road w/ outline + drop
+  shadow + pebbles, 3D candy level buttons (gold=done, white=ahead),
+  vivid game-art terrain gradients, shaded two-tone props w/ contact
+  shadows, clouds over bright worlds. Seamless road across zones
+  (2 shared neighbor points per side).
 - Map landscape pass: full-width ridge bands (dune crests, mountain
   ranges, canopy, skylines...), meandering rivers (oasis water on
   Sand, lava on Inferno, stardust on Galaxy), ground-texture marks,
