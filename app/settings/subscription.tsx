@@ -25,6 +25,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PurchasesPackage } from 'react-native-purchases';
 
+import { track } from '@/lib/analytics';
+
 import {
   getOfferingPackages,
   isRevenueCatConfigured,
@@ -80,6 +82,7 @@ export default function SubscriptionScreen() {
           isSubscribed: true,
         });
       }
+      track('subscribe_success');
       Alert.alert('Welcome to Pro', 'Thanks for supporting YourLevel.');
     } else if (!result.cancelled && result.error) {
       Alert.alert('Purchase failed', result.error);

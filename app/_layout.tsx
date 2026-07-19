@@ -36,6 +36,9 @@ import { Audiowide_400Regular } from '@expo-google-fonts/audiowide';
 import { JetBrainsMono_400Regular, JetBrainsMono_700Bold, JetBrainsMono_800ExtraBold } from '@expo-google-fonts/jetbrains-mono';
 
 import { DEFAULT_THEME_ID, getTheme } from '@/constants/themes';
+import { identifyUser, initAnalytics, resetAnalytics, track } from '@/lib/analytics';
+import { syncWidget } from '@/lib/widget';
+import { getXpProgress } from '@/lib/xp';
 // Side-effect import: defines the daily-reset background task at
 // module load. Keep this above the component so it runs once on
 // every JS boot (including headless background launches).
@@ -94,6 +97,7 @@ export default function RootLayout() {
       setSession(sess);
       if (!sess) {
         reset();
+        resetAnalytics();
         void logOutRevenueCat();
         void disableDailyReminders();
       }
@@ -101,12 +105,29 @@ export default function RootLayout() {
     return () => sub.subscription.unsubscribe();
   }, [reset]);
 
-  // Configure RevenueCat once. No-op if the API key is missing /
-  // placeholder; falls through silently in Expo Go.
+  // Configure RevenueCat + analytics once. No-op if keys are missing /
+  // placeholders; falls through silently in Expo Go.
   useEffect(() => {
     initRevenueCat();
+    initAnalytics();
+    track('app_open');
     void initSound();
   }, []);
+
+  // Tie analytics events to the signed-in user.
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (uid) identifyUser(uid);
+  }, [session?.user?.id]);
+
+  // Keep the home-screen widget in sync with level/streak/theme.
+  const widgetLevel = profile?.level;
+  const widgetXp = profile?.total_xp;
+  const widgetStreak = profile?.day_streak;
+  useEffect(() => {
+    if (!profile) return;
+    syncWidget(profile, theme, getXpProgress(profile.total_xp).xpToNextLevel);
+  }, [widgetLevel, widgetXp, widgetStreak, theme.id]);
 
   // Ask iOS to schedule the daily-reset background fetch once. Safe
   // to call on every launch - it's a no-op when already registered
@@ -138,9 +159,14 @@ export default function RootLayout() {
   // loadForUser is idempotent so extra calls are harmless.
   const lastActiveDate = profile?.last_active_date;
   const dayStartTime = profile?.day_start_time;
-  // Previous logical-day value across checks. Survives effect
-  // re-subscription (day-start change) because it's a component ref.
-  const prevLogicalDayRef = useRef<string | null>(null);
+  // Previous logical-day value across checks, PAIRED with the
+  // day-start it was computed under. Survives effect re-subscription
+  // (day-start change) because it's a component ref. The pairing
+  // matters: after a day-start REBASE (picking a time that already
+  // passed re-stamps the day forward), the logical day jumps without
+  // any boundary being crossed — comparing days computed under
+  // different start times must never trigger a close-out.
+  const prevLogicalDayRef = useRef<{ day: string; start: string } | null>(null);
   useEffect(() => {
     const uid = session?.user?.id;
     if (!uid || !lastActiveDate || !dayStartTime) return;
@@ -148,7 +174,7 @@ export default function RootLayout() {
     const checkRollover = () => {
       const logical = currentDayFor(new Date(), dayStartTime);
       const prev = prevLogicalDayRef.current;
-      prevLogicalDayRef.current = logical;
+      prevLogicalDayRef.current = { day: logical, start: dayStartTime };
 
       // Normal case: the calendar date of the logical day advanced.
       // Strictly forward (> not !==): moving day-start LATER than the
@@ -161,7 +187,14 @@ export default function RootLayout() {
       // Same-date crossing: the user moved day-start to later TODAY and
       // that moment just passed — logical flips yesterday -> today with
       // no date advance beyond last_active_date. Close the day in place.
-      if (prev != null && prev !== logical && logical === lastActiveDate) {
+      // Only when both days were computed under the SAME day-start:
+      // a day-start change itself must not read as a crossing.
+      if (
+        prev != null &&
+        prev.start === dayStartTime &&
+        prev.day !== logical &&
+        logical === lastActiveDate
+      ) {
         void loadForUser(uid, { forceReset: true });
       }
     };

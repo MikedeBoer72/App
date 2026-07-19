@@ -99,11 +99,11 @@ export default function ReferFriendsScreen() {
     })();
   }, [profile?.id]);
 
-  // NOTE: no promises about entering the code yet — code redemption
-  // ships in v1.1. The code still travels in the message so early
-  // referrers can be credited retroactively once redemption exists.
+  // Redemption is live: friends enter the code during sign-up
+  // (onboarding), conversion + the free month are handled by the
+  // redeem-referral / convert-referral Edge Functions.
   const shareMessage = code
-    ? `Join me on YourLevel and level up your habits! Download: ${APP_STORE_URL} (my referral code: ${code})`
+    ? `Join me on YourLevel and level up your habits! Download: ${APP_STORE_URL} — enter my code ${code} when you sign up. When you go Pro, I get a free month!`
     : '';
 
   async function copy() {

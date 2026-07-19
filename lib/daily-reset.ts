@@ -182,8 +182,19 @@ export async function runDailyResetIfNeeded(opts: {
       .select('*')
       .single<Profile>();
     if (fErr) throw fErr;
-    await opts.supabase.from('tasks').delete().eq('user_id', opts.userId);
-    await opts.supabase.from('bad_habits').delete().eq('user_id', opts.userId);
+    // Unlike the normal branch, last_active_date is UNCHANGED here, so
+    // surviving rows would stay visible AND get re-closed at the next
+    // real boundary (double streak/XP). Check + retry the wipes.
+    for (const table of ['tasks', 'bad_habits'] as const) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const { error: delErr } = await opts.supabase
+          .from(table)
+          .delete()
+          .eq('user_id', opts.userId);
+        if (!delErr) break;
+        console.warn(`[daily-reset] ${table} wipe failed (attempt ${attempt + 1})`, delErr);
+      }
+    }
     return { daysProcessed: [profile.last_active_date], newProfile: forced };
   }
 

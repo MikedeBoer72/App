@@ -35,6 +35,7 @@ import {
   type ThemeId,
 } from '@/constants/themes';
 import { DECORATIONS, type DecorationId } from '@/constants/decorations';
+import { track } from '@/lib/analytics';
 import { runDailyResetIfNeeded } from '@/lib/daily-reset';
 import { bestOwnedThemeId, getFontTrial, ownsTheme } from '@/lib/trial';
 import { syncRemindersToDayStart } from '@/lib/notifications';
@@ -402,6 +403,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     set({ tasks: nextTasks, profile: nextProfile, isSubscribed: nextProfile.is_subscribed });
     if (levelUpEvent) set({ levelUpEvent });
+    track('task_completed', { level: nextProfile.level });
+    if (levelUpEvent) track('level_up', { to: levelUpEvent.to });
 
     try {
       await Promise.all([
@@ -625,6 +628,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
 
     set({ badHabits: nextHabits, profile: nextProfile });
+    track('bad_habit_logged');
 
     try {
       await Promise.all([
@@ -751,6 +755,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
     const nextProfile: Profile = { ...profile, selected_font: themeId };
     set({ profile: nextProfile, theme: getTheme(themeId) });
+    track('font_applied', { font: themeId });
     try {
       await supabase.from('profiles').update({ selected_font: themeId }).eq('id', profile.id);
     } catch (err) {
@@ -858,6 +863,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   async finishTutorial() {
     set({ tutorialStep: null });
+    track('tutorial_finished');
     try {
       await AsyncStorage.setItem(TUTORIAL_DONE_KEY, 'true');
       await AsyncStorage.removeItem(TUTORIAL_PENDING_KEY);

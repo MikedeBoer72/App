@@ -168,14 +168,23 @@ async function syncEntitlementToSupabase(
   // in the LIVE store immediately so the level-5 gate opens the moment
   // the purchase confirms — even if the Supabase write below hiccups.
   const state = useAppStore.getState();
+  let becameSubscribed = false;
   if (state.profile && state.profile.id === userId) {
     const p = state.profile;
+    becameSubscribed = isSubscribed && !p.is_subscribed;
     if (p.is_subscribed !== isSubscribed || p.subscription_expires_at !== expiresAt) {
       useAppStore.setState({
         profile:      { ...p, is_subscribed: isSubscribed, subscription_expires_at: expiresAt },
         isSubscribed,
       });
     }
+  }
+
+  // First flip to subscribed: mark this user's referral as converted
+  // (grants the referrer their free month server-side). Fire-and-
+  // forget + idempotent, so extra calls are harmless.
+  if (becameSubscribed) {
+    void supabase.functions.invoke('convert-referral').catch(() => {});
   }
 
   // Persist to Supabase. supabase-js reports failures via the returned

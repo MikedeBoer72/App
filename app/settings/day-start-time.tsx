@@ -102,7 +102,24 @@ export default function DayStartTimeScreen() {
         .eq('id', profile.id)
         .select('*')
         .single<Profile>();
-      if (error || !data) throw error ?? new Error('Save failed');
+      if (error || !data) {
+        // The profile write is the commit. If it failed after the rows
+        // were re-stamped, stamp them back so the day isn't orphaned
+        // under a date the profile never advanced to.
+        if (rebase) {
+          await Promise.all([
+            supabase.from('tasks')
+              .update({ date: profile.last_active_date })
+              .eq('user_id', profile.id)
+              .eq('date', newToday),
+            supabase.from('bad_habits')
+              .update({ date: profile.last_active_date })
+              .eq('user_id', profile.id)
+              .eq('date', newToday),
+          ]).catch(() => {});
+        }
+        throw error ?? new Error('Save failed');
+      }
       setProfile(data);
       // Refresh lists under the (possibly re-stamped) active date.
       void useAppStore.getState().loadForUser(profile.id);

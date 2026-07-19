@@ -47,6 +47,7 @@ import { getDecoration } from '@/constants/decorations';
 import { play } from '@/lib/sound';
 import { STREAK_MILESTONES } from '@/lib/streak';
 import { supabase } from '@/lib/supabase';
+import { track } from '@/lib/analytics';
 import { formatTrialTimeLeft, getFontTrial } from '@/lib/trial';
 import { getNextUnlock } from '@/lib/unlocks';
 import { calculateTotalXpForLevel, DAILY_TASK_XP_CAP, getXpProgress } from '@/lib/xp';
@@ -217,6 +218,7 @@ export default function Dashboard() {
     try {
       const uri = await captureRef(shareCardRef, { format: 'png', quality: 1 });
       await Share.share({ url: uri });
+      track('share_card', { level: progress.level });
     } catch (err) {
       console.warn('[dashboard] share failed', err);
     }

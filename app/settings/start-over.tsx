@@ -9,7 +9,9 @@
 //   - day_start_time + day_start_changes_this_month (user already set
 //     them, no point making them redo onboarding)
 //   - onboarding_completed (same reason - just a reset, not a wipe)
-//   - selected_font / is_subscribed (entitlement isn't gameplay)
+//   - is_subscribed (entitlement isn't gameplay)
+// selected_font/decoration ARE reset: level is 1 again, so cosmetics
+// fall back to the best theme the fresh account actually owns.
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -19,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { supabase } from '@/lib/supabase';
+import { bestOwnedThemeId } from '@/lib/trial';
 import type { Profile } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -63,6 +66,12 @@ export default function StartOverScreen() {
           daily_task_xp_earned:           0,
           daily_bad_habit_xp_lost:        0,
           bad_habits_penalized_today:     [],
+          // Cosmetics reset explicitly (level is 1 again, so a kept
+          // high-level font would otherwise be silently reverted by
+          // the ownership guard on the next load — do it here, visibly
+          // and predictably).
+          selected_font:                  bestOwnedThemeId(1, profile.is_subscribed),
+          selected_decoration:            'none',
         })
         .eq('id', userId)
         .select('*')

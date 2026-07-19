@@ -25,6 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { track } from '@/lib/analytics';
 import { currentDayFor } from '@/lib/daily-reset';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
@@ -57,6 +58,7 @@ export default function Onboarding() {
   const [stepIndex, setStepIndex] = useState(0);
   const [name, setName] = useState(profile?.username ?? '');
   const [time, setTime] = useState<Date>(() => initialDate(profile?.day_start_time));
+  const [referralCode, setReferralCode] = useState('');
   const [saving, setSaving] = useState(false);
 
   const step = ORDER[stepIndex]!;
@@ -105,6 +107,18 @@ export default function Onboarding() {
         AsyncStorage.setItem(TUTORIAL_PENDING_KEY, 'true'),
         AsyncStorage.removeItem(TUTORIAL_DONE_KEY),
       ]).catch(() => {});
+      // Redeem the friend's referral code (fire-and-forget; invalid
+      // codes are silently ignored so they never block onboarding).
+      const code = referralCode.trim();
+      if (code) {
+        void supabase.functions
+          .invoke('redeem-referral', { body: { code } })
+          .then(({ error: fnErr }) => {
+            if (!fnErr) track('referral_redeemed');
+          })
+          .catch(() => {});
+      }
+      track('onboarding_completed');
       setProfile(data);
       // Root layout routes into the app once onboarding_completed flips.
     } catch (err) {
@@ -178,6 +192,24 @@ export default function Onboarding() {
                 textColor={theme.colors.primary}
               />
             </View>
+            <TextInput
+              value={referralCode}
+              onChangeText={setReferralCode}
+              placeholder="Referral code (optional)"
+              placeholderTextColor={theme.colors.muted}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={16}
+              returnKeyType="done"
+              style={[
+                styles.referralInput,
+                {
+                  color: theme.colors.primary,
+                  borderColor: theme.colors.muted,
+                  backgroundColor: theme.colors.surface,
+                },
+              ]}
+            />
           </View>
         ) : (
           <View style={styles.center}>
@@ -250,6 +282,7 @@ const styles = StyleSheet.create({
   title:      { fontSize: 28, fontWeight: '800', textAlign: 'center' },
   bodyText:   { fontSize: 16, lineHeight: 24, textAlign: 'center', paddingHorizontal: 8 },
   input:      { width: '85%', height: 52, borderRadius: 12, paddingHorizontal: 16, fontSize: 18, borderWidth: 1, textAlign: 'center', marginTop: 8 },
+  referralInput: { width: '85%', height: 44, borderRadius: 12, paddingHorizontal: 16, fontSize: 14, borderWidth: 1, textAlign: 'center', marginTop: 4 },
   pickerWrap: { marginTop: 8, borderRadius: 16, paddingHorizontal: 12, alignItems: 'center', alignSelf: 'stretch' },
   nav:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 24, gap: 12 },
   backBtn:    { minWidth: 64, height: 52, justifyContent: 'center' },

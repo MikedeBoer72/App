@@ -78,6 +78,45 @@ level-up / world-entry / milestone), weekly report (/settings/
 weekly-report; Stats header calendar icon + Sunday dashboard banner).
 MIGRATION 008 required + npm install (react-native-view-shot).
 
+## 🎁 REFERRALS + WIDGET + ANALYTICS (July 2026 — needs npm install,
+## migration 009, function deploys + rebuild)
+
+- REFERRALS ARE LIVE: friends enter the code during onboarding
+  (optional field on the last step). Redemption + conversion run in
+  Edge Functions with the service role; when the referred friend goes
+  Pro, the referrer is granted 1 free month via RevenueCat's
+  promotional entitlement API.
+  ⚠️ ONE-TIME SETUP:
+    1. Run supabase/migrations/009_referral_redemption.sql in the
+       Supabase SQL editor
+    2. supabase functions deploy redeem-referral
+    3. supabase functions deploy convert-referral
+    4. supabase secrets set REVENUECAT_SECRET_KEY=sk_...
+       (RevenueCat dashboard → API keys → secret key. Without it,
+       conversions are still recorded; the free month can be granted
+       retroactively once set.)
+- HOME-SCREEN WIDGET (small + medium): level ring + streak + XP in
+  the active theme's colors, updates on every XP change via App Group
+  storage (@bacons/apple-targets; targets/widget/index.swift).
+  ⚠️ First build after this adds a new widget target — EAS will ask to
+  create credentials/provisioning for com.yourlevel.app.YourLevelWidget
+  (interactive build handles it; say yes). If the build somehow fails
+  on the widget, revert app.json's "@bacons/apple-targets" plugin line
+  + ios.entitlements block and rebuild — everything else still works.
+- ANALYTICS (PostHog, off until keyed): funnel events (app_open,
+  onboarding_completed, tutorial_finished, task_completed, level_up,
+  bad_habit_logged, font_applied, map_opened, share_card,
+  subscribe_success, referral_redeemed) via lib/analytics.ts.
+  ⚠️ TO ENABLE: create a free PostHog project (US cloud) and paste the
+  project API key into EXPO_PUBLIC_POSTHOG_KEY in eas.json (both
+  preview + production). Empty key = analytics silently off.
+- Verification pass on the previous session's fixes found + fixed 4
+  regressions: day-start rebase being undone by the rollover tick
+  (streak loss), rebase orphaning rows if the profile write failed,
+  unchecked wipes in the force-close branch (double streak), and
+  Start Over leaving an un-owned font selected (now resets cosmetics
+  explicitly).
+
 ## 🚀 PRE-LAUNCH FINISHERS (July 2026)
 
 ### Bug-fix audit pass (10 findings, all addressed in code)

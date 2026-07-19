@@ -52,6 +52,7 @@ import Svg, {
 
 import { DECORATIONS, type Decoration } from '@/constants/decorations';
 import { getTheme, THEMES, type ThemeId } from '@/constants/themes';
+import { track } from '@/lib/analytics';
 import { useAppStore } from '@/store/useAppStore';
 
 // ---------------------------------------------------------------------------
@@ -456,6 +457,11 @@ export default function MapScreen() {
   const zones = useMemo(() => buildZones(level), [level]);
   const descending = useMemo(() => [...zones].reverse(), [zones]);
   const hostZone = zones.find((z) => level >= z.start && level <= z.end) ?? null;
+
+  useEffect(() => {
+    track('map_opened', { level });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (currentY == null) return;
