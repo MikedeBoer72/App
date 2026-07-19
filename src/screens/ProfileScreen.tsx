@@ -9,9 +9,11 @@ import { XPBar } from '../components/XPBar';
 import { useStore } from '../store';
 import { theme } from '../theme';
 import { ACHIEVEMENTS } from '../gamification';
+import { usePostHog } from 'posthog-react-native';
 
 export function ProfileScreen() {
   const { state, dispatch, reset } = useStore();
+  const posthog = usePostHog();
   const [name, setName] = useState(state.profile.name);
   const [goals, setGoals] = useState({
     sleepHours: String(state.goals.sleepHours),
@@ -24,25 +26,49 @@ export function ProfileScreen() {
   });
 
   const saveProfile = () => {
-    dispatch({ type: 'SET_NAME', name: name.trim() || 'Champion' });
-    dispatch({
-      type: 'UPDATE_GOALS',
-      goals: {
-        sleepHours: parseFloat(goals.sleepHours) || 8,
-        calories: parseInt(goals.calories) || 2000,
-        protein: parseInt(goals.protein) || 120,
-        carbs: parseInt(goals.carbs) || 220,
-        fats: parseInt(goals.fats) || 60,
-        waterGlasses: parseInt(goals.waterGlasses) || 8,
-        workoutsPerWeek: parseInt(goals.workoutsPerWeek) || 3,
-      },
+    const savedName = name.trim() || 'Champion';
+    const savedGoals = {
+      sleepHours: parseFloat(goals.sleepHours) || 8,
+      calories: parseInt(goals.calories) || 2000,
+      protein: parseInt(goals.protein) || 120,
+      carbs: parseInt(goals.carbs) || 220,
+      fats: parseInt(goals.fats) || 60,
+      waterGlasses: parseInt(goals.waterGlasses) || 8,
+      workoutsPerWeek: parseInt(goals.workoutsPerWeek) || 3,
+    };
+    dispatch({ type: 'SET_NAME', name: savedName });
+    dispatch({ type: 'UPDATE_GOALS', goals: savedGoals });
+    posthog.identify(savedName, {
+      $set: { name: savedName },
+    });
+    posthog.capture('profile_saved', {
+      name_set: savedName !== 'Champion',
+      sleep_goal_hours: savedGoals.sleepHours,
+      calorie_goal: savedGoals.calories,
+      protein_goal: savedGoals.protein,
+      water_goal_glasses: savedGoals.waterGlasses,
+      workouts_per_week_goal: savedGoals.workoutsPerWeek,
     });
   };
 
   const confirmReset = () => {
     Alert.alert('Reset all data?', 'This wipes XP, streaks, logs, and goals. Cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Reset', style: 'destructive', onPress: () => reset() },
+      {
+        text: 'Reset',
+        style: 'destructive',
+        onPress: () => {
+          posthog.capture('data_reset_confirmed', {
+            total_xp_lost: state.totalXp,
+            workouts_logged: state.workouts.length,
+            sleep_entries: state.sleep.length,
+            food_entries: state.food.length,
+            achievements_earned: state.achievements.length,
+          });
+          posthog.reset();
+          reset();
+        },
+      },
     ]);
   };
 

@@ -10,6 +10,7 @@ import { theme } from '../theme';
 import { lastNDays, shortLabel, todayISO } from '../dates';
 import { ExerciseEntry, WorkoutSet } from '../types';
 import { BarChart } from '../components/BarChart';
+import { usePostHog } from 'posthog-react-native';
 
 const TEMPLATES: { name: string; exercises: string[] }[] = [
   { name: 'Push day', exercises: ['Bench press', 'Overhead press', 'Tricep pushdown'] },
@@ -22,6 +23,7 @@ type Intensity = 'light' | 'moderate' | 'intense';
 
 export function WorkoutScreen() {
   const { state, dispatch } = useStore();
+  const posthog = usePostHog();
   const [name, setName] = useState('');
   const [duration, setDuration] = useState('');
   const [intensity, setIntensity] = useState<Intensity>('moderate');
@@ -34,6 +36,10 @@ export function WorkoutScreen() {
   const applyTemplate = (t: { name: string; exercises: string[] }) => {
     setName(t.name);
     setExercises(t.exercises.map((e) => ({ name: e, sets: [{ reps: 10, weight: 0 }] })));
+    posthog.capture('workout_template_selected', {
+      template_name: t.name,
+      exercise_count: t.exercises.length,
+    });
   };
 
   const addExercise = () => setExercises((x) => [...x, { name: 'Exercise', sets: [{ reps: 10, weight: 0 }] }]);
@@ -69,6 +75,13 @@ export function WorkoutScreen() {
         intensity,
         exercises,
       },
+    });
+    posthog.capture('workout_logged', {
+      workout_name: name.trim(),
+      duration_min: d,
+      intensity,
+      exercise_count: exercises.length,
+      total_sets: exercises.reduce((sum, ex) => sum + ex.sets.length, 0),
     });
     setName('');
     setDuration('');

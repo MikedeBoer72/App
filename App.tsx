@@ -4,7 +4,9 @@ import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { PostHogProvider } from 'posthog-react-native';
 
+import { posthog } from './src/config/posthog';
 import { StoreProvider, useStore } from './src/store';
 import { theme } from './src/theme';
 import { DashboardScreen } from './src/screens/DashboardScreen';
@@ -129,9 +131,18 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <StoreProvider>
-        <Root />
-      </StoreProvider>
+      <PostHogProvider
+        client={posthog}
+        autocapture={{
+          captureScreens: false,
+          captureTouches: true,
+          propsToCapture: ['testID'],
+        }}
+      >
+        <StoreProvider>
+          <Root />
+        </StoreProvider>
+      </PostHogProvider>
     </SafeAreaProvider>
   );
 }
