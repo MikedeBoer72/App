@@ -11,3 +11,4 @@ npm-debug.*
 *.orig.*
 .env*
 .DS_Store
+.env

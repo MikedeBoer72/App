@@ -6,14 +6,28 @@ import { BarChart } from '../components/BarChart';
 import { useStore } from '../store';
 import { theme } from '../theme';
 import { lastNDays, shortLabel, todayISO } from '../dates';
+import { usePostHog } from 'posthog-react-native';
 
 export function WaterScreen() {
   const { state, dispatch } = useStore();
+  const posthog = usePostHog();
   const today = todayISO();
   const current = state.water.find((w) => w.date === today)?.glasses ?? 0;
   const goal = state.goals.waterGlasses;
 
-  const set = (n: number) => dispatch({ type: 'SET_WATER', date: today, glasses: Math.max(0, n) });
+  const set = (n: number) => {
+    const next = Math.max(0, n);
+    const wasGoalMet = current >= goal;
+    const nowGoalMet = next >= goal;
+    dispatch({ type: 'SET_WATER', date: today, glasses: next });
+    if (!wasGoalMet && nowGoalMet) {
+      posthog.capture('water_goal_reached', {
+        glasses: next,
+        goal_glasses: goal,
+        water_streak: state.streaks.water.count,
+      });
+    }
+  };
 
   const week = lastNDays(7);
   const values = week.map((d) => state.water.find((w) => w.date === d)?.glasses ?? 0);

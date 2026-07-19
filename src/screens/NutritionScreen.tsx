@@ -11,6 +11,7 @@ import { theme } from '../theme';
 import { lastNDays, shortLabel, todayISO } from '../dates';
 import { FoodEntry } from '../types';
 import { XP_REWARDS } from '../gamification';
+import { usePostHog } from 'posthog-react-native';
 
 const FOOD_PRESETS: Omit<FoodEntry, 'id' | 'date'>[] = [
   { name: 'Chicken breast (150g)', calories: 247, protein: 46, carbs: 0, fats: 5 },
@@ -23,6 +24,7 @@ const FOOD_PRESETS: Omit<FoodEntry, 'id' | 'date'>[] = [
 
 export function NutritionScreen() {
   const { state, dispatch } = useStore();
+  const posthog = usePostHog();
   const today = todayISO();
 
   const [name, setName] = useState('');
@@ -65,7 +67,20 @@ export function NutritionScreen() {
     dispatch({ type: 'ADD_FOOD', entry: { id, date: today, ...src } });
     const nowProteinMet = totals.protein + src.protein >= state.goals.protein;
     if (!wasProteinMet && nowProteinMet) dispatch({ type: 'AWARD_XP', xp: XP_REWARDS.nutritionGoal });
-    if (!entry) {
+    if (entry) {
+      posthog.capture('meal_preset_used', {
+        meal_name: src.name,
+        calories: src.calories,
+        protein: src.protein,
+      });
+    } else {
+      posthog.capture('meal_logged', {
+        meal_name: src.name,
+        calories: src.calories,
+        protein: src.protein,
+        carbs: src.carbs,
+        fats: src.fats,
+      });
       setName('');
       setCal('');
       setProt('');

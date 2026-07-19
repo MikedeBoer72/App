@@ -8,9 +8,11 @@ import { StatTile } from '../components/StatTile';
 import { SectionHeader } from '../components/SectionHeader';
 import { greeting, todayISO } from '../dates';
 import { getDailyQuests } from '../gamification';
+import { usePostHog } from 'posthog-react-native';
 
 export function DashboardScreen({ navigation }: { navigation: any }) {
   const { state, dispatch } = useStore();
+  const posthog = usePostHog();
   const today = todayISO();
 
   const sleepToday = state.sleep.find((s) => s.date === today);
@@ -93,7 +95,14 @@ export function DashboardScreen({ navigation }: { navigation: any }) {
               ) : done ? (
                 <Pressable
                   style={styles.claimBtn}
-                  onPress={() => dispatch({ type: 'CLAIM_QUEST', id: q.id })}
+                  onPress={() => {
+                    dispatch({ type: 'CLAIM_QUEST', id: q.id });
+                    posthog.capture('quest_claimed', {
+                      quest_id: q.id,
+                      quest_title: q.title,
+                      xp_earned: q.xp,
+                    });
+                  }}
                 >
                   <Text style={styles.claimBtnText}>Claim</Text>
                 </Pressable>

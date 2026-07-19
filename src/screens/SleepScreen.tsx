@@ -9,9 +9,11 @@ import { useStore } from '../store';
 import { theme } from '../theme';
 import { lastNDays, shortLabel, todayISO } from '../dates';
 import { XP_REWARDS } from '../gamification';
+import { usePostHog } from 'posthog-react-native';
 
 export function SleepScreen() {
   const { state, dispatch } = useStore();
+  const posthog = usePostHog();
   const today = todayISO();
   const todays = state.sleep.find((s) => s.date === today);
 
@@ -29,6 +31,19 @@ export function SleepScreen() {
     const nowMet = h >= state.goals.sleepHours;
     dispatch({ type: 'ADD_SLEEP', entry: { date: today, hours: h, quality } });
     if (!wasMet && nowMet) dispatch({ type: 'AWARD_XP', xp: XP_REWARDS.sleepGoal });
+    posthog.capture('sleep_logged', {
+      hours: h,
+      quality,
+      goal_hours: state.goals.sleepHours,
+      goal_met: nowMet,
+    });
+    if (!wasMet && nowMet) {
+      posthog.capture('sleep_goal_met', {
+        hours: h,
+        goal_hours: state.goals.sleepHours,
+        sleep_streak: state.streaks.sleep.count,
+      });
+    }
   };
 
   return (
