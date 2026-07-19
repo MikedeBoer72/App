@@ -78,6 +78,16 @@ level-up / world-entry / milestone), weekly report (/settings/
 weekly-report; Stats header calendar icon + Sunday dashboard banner).
 MIGRATION 008 required + npm install (react-native-view-shot).
 
+## 🚀 PRE-LAUNCH FINISHERS (July 2026)
+
+- FONT TEST DRIVE: first 24h after account creation, EVERY font is
+  selectable (lib/trial.ts, no migration — derived from created_at).
+  Dashboard banner + Fonts screen countdown; when it lapses, an
+  un-owned selected font silently reverts to the best owned theme
+  (loadForUser guard). Hook: taste Cyberpunk on day one.
+- Tutorial now has a "Your roadmap" step (spotlights the map button)
+  and the final step plugs the 24h test drive.
+
 ## ⚠️ POLISH PASS (July 2026 — needs `npm install` + rebuild)
 
 - Fonts: Calm=Pacifico, Slate=Chakra Petch, Green Vibes=Baloo 2,

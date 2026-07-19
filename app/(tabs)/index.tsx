@@ -47,6 +47,7 @@ import { getDecoration } from '@/constants/decorations';
 import { play } from '@/lib/sound';
 import { STREAK_MILESTONES } from '@/lib/streak';
 import { supabase } from '@/lib/supabase';
+import { formatTrialTimeLeft, getFontTrial } from '@/lib/trial';
 import { getNextUnlock } from '@/lib/unlocks';
 import { calculateTotalXpForLevel, DAILY_TASK_XP_CAP, getXpProgress } from '@/lib/xp';
 import {
@@ -64,7 +65,7 @@ import { useAppStore } from '@/store/useAppStore';
 // spotlighted control to continue).
 // ---------------------------------------------------------------------------
 
-type TutorialTarget = 'addTask' | 'firstTask' | 'streak' | 'habits' | 'avatar';
+type TutorialTarget = 'addTask' | 'firstTask' | 'streak' | 'habits' | 'map' | 'avatar';
 
 const TUTORIAL_STEPS: ReadonlyArray<{
   target: TutorialTarget | null;
@@ -103,9 +104,15 @@ const TUTORIAL_STEPS: ReadonlyArray<{
     next:   'Next',
   },
   {
+    target: 'map',
+    title:  'Your roadmap',
+    body:   'Every level is a step on a road through new worlds — golden deserts, jungles, a neon city at the very top. Tap the map any time to see how far you’ve come and what’s next.',
+    next:   'Next',
+  },
+  {
     target: 'avatar',
     title:  'Level up, unlock more',
-    body:   'New themes and background decorations unlock as you level. Find them any time in Settings → Fonts and Decorations.',
+    body:   'New fonts and decorations unlock as you level. And for your FIRST 24 HOURS every font is unlocked — go taste Cyberpunk in Settings → Fonts before the test drive ends.',
     next:   'Finish',
   },
 ];
@@ -151,6 +158,15 @@ export default function Dashboard() {
     if (!profile) return 0;
     return profile.daily_task_xp_earned - profile.daily_bad_habit_xp_lost;
   }, [profile?.daily_task_xp_earned, profile?.daily_bad_habit_xp_lost]);
+
+  // 24h font test drive; a minute tick keeps the countdown fresh.
+  const [trialTick, setTrialTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTrialTick((n) => n + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fontTrial = useMemo(() => getFontTrial(profile), [profile?.created_at, trialTick]);
 
   // Floating "+XP" toasts. Pushed by onToggleTask; each renders
   // absolutely over the level circle and removes itself after 1.6s.
@@ -212,6 +228,7 @@ export default function Dashboard() {
   const firstTaskRef = useRef<View>(null);
   const streakRef = useRef<View>(null);
   const habitsRef = useRef<View>(null);
+  const mapRef = useRef<View>(null);
   const avatarRef = useRef<View>(null);
   const [tutorialHole, setTutorialHole] = useState<HoleRect | null>(null);
 
@@ -259,6 +276,7 @@ export default function Dashboard() {
       firstTask: firstTaskRef,
       streak:    streakRef,
       habits:    habitsRef,
+      map:       mapRef,
       avatar:    avatarRef,
     };
     const timer = setTimeout(() => {
@@ -442,6 +460,7 @@ export default function Dashboard() {
 
           <View style={styles.headerRightRow}>
             <Pressable
+              ref={mapRef}
               accessibilityRole="button"
               onPress={() => router.push('/map')}
               hitSlop={8}
@@ -510,6 +529,29 @@ export default function Dashboard() {
           theme={theme}
           onPress={() => router.push('/map')}
         />
+
+        {/* 24h font test drive (new accounts): every font unlocked. */}
+        {fontTrial.active ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/settings/fonts')}
+            style={({ pressed }) => [
+              styles.trialBanner,
+              { backgroundColor: theme.colors.accent, opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <Text style={styles.trialEmoji}>🚀</Text>
+            <View style={styles.trialTextWrap}>
+              <Text style={[styles.trialTitle, { color: theme.colors.background }]}>
+                ALL fonts unlocked — test drive
+              </Text>
+              <Text style={[styles.trialSub, { color: theme.colors.background }]}>
+                Try Cyberpunk, Galaxy & more · {formatTrialTimeLeft(fontTrial.msLeft)} left
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.background} />
+          </Pressable>
+        ) : null}
 
         {/* Weekly report banner, Sundays only. */}
         {new Date().getDay() === 0 ? (
@@ -1185,6 +1227,11 @@ const styles = StyleSheet.create({
   empty:          { fontSize: 13, fontStyle: 'italic', paddingVertical: 8 },
   footer:         { fontSize: 12, textAlign: 'center', marginTop: 8 },
   reportBanner:   { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, borderWidth: 1.5, paddingHorizontal: 14, paddingVertical: 11 },
+  trialBanner:    { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
+  trialEmoji:     { fontSize: 18 },
+  trialTextWrap:  { flex: 1, gap: 1 },
+  trialTitle:     { fontSize: 13.5, fontWeight: '900', letterSpacing: 0.3 },
+  trialSub:       { fontSize: 11.5, fontWeight: '600', opacity: 0.85 },
   reportEmoji:    { fontSize: 16 },
   reportText:     { flex: 1, fontSize: 14, fontWeight: '700' },
   teaserStrip:    {

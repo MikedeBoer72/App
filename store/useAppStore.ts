@@ -36,6 +36,7 @@ import {
 } from '@/constants/themes';
 import { DECORATIONS, type DecorationId } from '@/constants/decorations';
 import { runDailyResetIfNeeded } from '@/lib/daily-reset';
+import { bestOwnedThemeId, getFontTrial, ownsTheme } from '@/lib/trial';
 import { syncRemindersToDayStart } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import type { BadHabit, Profile, Task } from '@/lib/types';
@@ -211,6 +212,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
           .update({ level: profile.level, current_xp: profile.current_xp })
           .eq('id', userId);
         if (syncErr) console.warn('[useAppStore] level re-sync persist failed', syncErr);
+      }
+
+      // Font test-drive lapse guard: during the first 24h every font
+      // is selectable (lib/trial.ts). Once the window closes, a
+      // selected font the player doesn't actually own silently falls
+      // back to the best theme they DO own.
+      const selected = getTheme(profile.selected_font);
+      if (
+        !ownsTheme(selected, profile.level, profile.is_subscribed) &&
+        !getFontTrial(profile).active
+      ) {
+        const fallback = bestOwnedThemeId(profile.level, profile.is_subscribed);
+        profile = { ...profile, selected_font: fallback };
+        const { error: fontErr } = await supabase
+          .from('profiles')
+          .update({ selected_font: fallback })
+          .eq('id', userId);
+        if (fontErr) console.warn('[useAppStore] trial font revert persist failed', fontErr);
       }
 
       // The active day is last_active_date (the daily reset above just
