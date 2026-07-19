@@ -20,7 +20,8 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "UIBackgroundModes": ["fetch"],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryAddUsageDescription": "Allow YourLevel to save your progress share cards to your photos."
       }
     },
     "plugins": [

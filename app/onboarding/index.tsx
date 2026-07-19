@@ -25,6 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { currentDayFor } from '@/lib/daily-reset';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
 import { TUTORIAL_DONE_KEY, TUTORIAL_PENDING_KEY, useAppStore } from '@/store/useAppStore';
@@ -86,6 +87,11 @@ export default function Onboarding() {
           username: name.trim() || profile.username || null,
           day_start_time: `${hh}:${mm}:00`,
           onboarding_completed: true,
+          // Stamp the active day from the DEVICE clock + chosen
+          // day-start. The DB default is the server's UTC date, which
+          // can sit a day ahead for users west of UTC and stretch
+          // their first day to ~48h before the first close-out.
+          last_active_date: currentDayFor(new Date(), `${hh}:${mm}:00`),
         })
         .eq('id', profile.id)
         .select('*')

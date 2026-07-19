@@ -56,6 +56,13 @@ export default function StartOverScreen() {
           highest_streak:                 0,
           second_chance_active:           false,
           second_chance_days_remaining:   0,
+          // A true wipe: banked freezes, queued milestone celebrations
+          // and today's XP caps must not survive into the fresh start.
+          streak_freezes:                 0,
+          pending_streak_milestone:       null,
+          daily_task_xp_earned:           0,
+          daily_bad_habit_xp_lost:        0,
+          bad_habits_penalized_today:     [],
         })
         .eq('id', userId)
         .select('*')

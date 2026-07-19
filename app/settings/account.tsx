@@ -110,8 +110,17 @@ export default function AccountScreen() {
     if (!profile) return;
     setDeleting(true);
     try {
-      const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
-      if (error) throw error;
+      // Full deletion (profile + storage + the auth identity itself)
+      // via the delete-account Edge Function — Apple 5.1.1(v) requires
+      // the account to really be gone. If the function isn't reachable
+      // (not deployed yet / offline), fall back to wiping the profile
+      // so the user's data is removed either way.
+      const { error: fnErr } = await supabase.functions.invoke('delete-account');
+      if (fnErr) {
+        console.warn('[account] delete-account function failed, falling back', fnErr);
+        const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
+        if (error) throw error;
+      }
       reset();
       await supabase.auth.signOut();
     } catch (err) {

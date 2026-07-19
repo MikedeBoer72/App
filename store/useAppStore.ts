@@ -121,6 +121,9 @@ interface AppStore {
 // Store
 // ---------------------------------------------------------------------------
 
+/** Serializes loadForUser calls (see comment inside loadForUser). */
+let loadChain: Promise<void> = Promise.resolve();
+
 export const useAppStore = create<AppStore>((set, get) => ({
   profile:       null,
   tasks:         [],
@@ -160,6 +163,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // ---------------------------------------------------------------------
 
   async loadForUser(userId, opts) {
+    // Serialize concurrent calls: the foreground AppState event and
+    // the 60s rollover tick can fire together, and two interleaved
+    // daily resets over the same rows could re-close a finished day
+    // as a miss. Each call waits for the previous one to settle.
+    const run = loadChain.catch(() => {}).then(() => doLoadForUser(userId, opts));
+    loadChain = run;
+    return run;
+
+    async function doLoadForUser(
+      userId: string,
+      opts?: { forceReset?: boolean },
+    ): Promise<void> {
     try {
       // Idempotent multi-day catch-up. Non-fatal: if the trigger that
       // creates the profile is still in flight we'll just load what we
@@ -269,6 +284,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         loadError: err instanceof Error ? err.message : 'Failed to load profile',
         hydrated:  true,
       });
+    }
     }
   },
 

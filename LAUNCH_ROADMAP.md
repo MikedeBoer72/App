@@ -80,6 +80,31 @@ MIGRATION 008 required + npm install (react-native-view-shot).
 
 ## 🚀 PRE-LAUNCH FINISHERS (July 2026)
 
+### Bug-fix audit pass (10 findings, all addressed in code)
+1. Day-start moved EARLIER no longer closes the in-progress day as a
+   miss — the day is rebased (rows re-stamped) and just continues.
+2. Delete Account now really deletes: NEW Edge Function
+   `supabase/functions/delete-account` (profile + avatar + auth user).
+   ⚠️ ONE-TIME DEPLOY NEEDED: `supabase functions deploy delete-account`
+   (falls back to profile-only wipe until deployed).
+3. Added NSPhotoLibraryAddUsageDescription (Save Image from the share
+   sheet used to hard-crash the app).
+4. Daily reset made failure/concurrency safe: profile commit happens
+   BEFORE task wipes, and loadForUser calls are serialized — a
+   successful day can no longer be rewritten as a miss.
+5. Start Over now also wipes freezes, pending milestone and today's
+   XP caps.
+6. Referral share message no longer promises a code-entry flow that
+   doesn't exist yet (redemption = v1.1).
+7. RevenueCat→Supabase entitlement sync now checks/retries the write
+   AND mirrors into the live store — a paying user can't stay
+   paywalled on a network blip.
+8. Habit-only days (no tasks, clean day) now COUNT for the streak.
+9. First-day stamp comes from the device clock at onboarding (was
+   server UTC — users west of UTC got a ~48h first day).
+10. eas projectId: builds are run interactively (linked at build
+    time) — nothing to change.
+
 - FONT TEST DRIVE: first 24h after account creation, EVERY font is
   selectable (lib/trial.ts, no migration — derived from created_at).
   Dashboard banner + Fonts screen countdown; when it lapses, an

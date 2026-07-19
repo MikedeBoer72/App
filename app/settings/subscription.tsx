@@ -70,6 +70,16 @@ export default function SubscriptionScreen() {
     if (result.success) {
       // Reload profile so the dashboard / guard see the new is_subscribed.
       await useAppStore.getState().loadForUser(profile.id);
+      // RevenueCat confirmed the entitlement. If the Supabase write is
+      // lagging (network blip), the stale refetch must not re-lock a
+      // paying user behind the paywall — assert it in the live store.
+      const st = useAppStore.getState();
+      if (st.profile && !st.profile.is_subscribed) {
+        useAppStore.setState({
+          profile:      { ...st.profile, is_subscribed: true },
+          isSubscribed: true,
+        });
+      }
       Alert.alert('Welcome to Pro', 'Thanks for supporting YourLevel.');
     } else if (!result.cancelled && result.error) {
       Alert.alert('Purchase failed', result.error);

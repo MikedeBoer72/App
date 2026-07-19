@@ -71,16 +71,24 @@ export interface DaySummary {
   taskCount:             number;
 }
 
-/** Summarize whether a day was a streak success. Empty days count as a miss. */
+/**
+ * Summarize whether a day was a streak success. Fully-empty days
+ * (nothing tracked at all) count as a miss. A habit-only day — no
+ * tasks, but bad habits tracked and none done — counts as a success,
+ * so users fighting habits without a task list can still hold a
+ * streak.
+ */
 export function summarizeDay(opts: { tasks: Task[]; badHabits: BadHabit[] }): DaySummary {
   const tasksCompletedCount = opts.tasks.filter((t) => t.is_completed).length;
   const taskCount = opts.tasks.length;
   const allTasksComplete = taskCount > 0 && tasksCompletedCount === taskCount;
   const anyBadHabitDone = opts.badHabits.some((h) => h.is_done);
+  const anyTracked = taskCount > 0 || opts.badHabits.length > 0;
   return {
     allTasksComplete,
     anyBadHabitDone,
-    successful: allTasksComplete && !anyBadHabitDone,
+    successful:
+      anyTracked && (taskCount === 0 || allTasksComplete) && !anyBadHabitDone,
     tasksCompletedCount,
     taskCount,
   };
@@ -145,14 +153,15 @@ export async function runDailyResetIfNeeded(opts: {
     }
     // Same-date boundary crossing: evaluate + log the current day,
     // wipe the lists, zero the daily caps — but keep last_active_date.
+    // The profile patch commits BEFORE the row deletes: if the deletes
+    // ran first and the patch failed, a re-run would find zero tasks
+    // and rewrite the (possibly successful) day as a miss.
     const closed = await closeOutDay({
       supabase: opts.supabase,
       userId:   opts.userId,
       profile,
       day:      profile.last_active_date,
     });
-    await opts.supabase.from('tasks').delete().eq('user_id', opts.userId);
-    await opts.supabase.from('bad_habits').delete().eq('user_id', opts.userId);
     const { data: forced, error: fErr } = await opts.supabase
       .from('profiles')
       .update({
@@ -173,6 +182,8 @@ export async function runDailyResetIfNeeded(opts: {
       .select('*')
       .single<Profile>();
     if (fErr) throw fErr;
+    await opts.supabase.from('tasks').delete().eq('user_id', opts.userId);
+    await opts.supabase.from('bad_habits').delete().eq('user_id', opts.userId);
     return { daysProcessed: [profile.last_active_date], newProfile: forced };
   }
 
@@ -188,21 +199,11 @@ export async function runDailyResetIfNeeded(opts: {
     cursor = nextYmd(cursor);
   }
 
-  // Wipe the prior day's tasks AND bad habits so the user starts
-  // each new day with empty lists and has to consciously re-add
-  // what matters / what they're fighting. task_history is untouched
-  // so the suggestion chips still surface recent names for one-tap
-  // re-add.
-  await opts.supabase
-    .from('tasks')
-    .delete()
-    .eq('user_id', opts.userId);
-  await opts.supabase
-    .from('bad_habits')
-    .delete()
-    .eq('user_id', opts.userId);
-
-  // Persist the running profile.
+  // Persist the running profile FIRST — committing last_active_date
+  // makes the walk idempotent. Only then wipe the prior day's rows.
+  // (If the deletes ran first and this patch failed, a concurrent or
+  // retried run would find zero tasks for the closed days and rewrite
+  // a successful day as a miss, burning freezes/streak.)
   const profilePatch = {
     level:                          running.level,
     total_xp:                       running.total_xp,
@@ -226,6 +227,21 @@ export async function runDailyResetIfNeeded(opts: {
     .select('*')
     .single<Profile>();
   if (upErr) throw upErr;
+
+  // Wipe the prior day's tasks AND bad habits so the user starts
+  // each new day with empty lists and has to consciously re-add
+  // what matters / what they're fighting. task_history is untouched
+  // so the suggestion chips still surface recent names for one-tap
+  // re-add. Leftovers from a failed delete are invisible (loads are
+  // keyed on last_active_date) and get swept on the next reset.
+  await opts.supabase
+    .from('tasks')
+    .delete()
+    .eq('user_id', opts.userId);
+  await opts.supabase
+    .from('bad_habits')
+    .delete()
+    .eq('user_id', opts.userId);
 
   return { daysProcessed, newProfile: updated };
 }

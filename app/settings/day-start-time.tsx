@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { currentDayFor } from '@/lib/daily-reset';
 import { syncRemindersToDayStart } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
@@ -68,18 +69,43 @@ export default function DayStartTimeScreen() {
     const day_start_changes_this_month = isNewMonth ? 1 : profile.day_start_changes_this_month + 1;
 
     try {
+      // If the picked time already PASSED today, the computed logical
+      // day jumps ahead of last_active_date — without handling, the
+      // rollover check would immediately close the in-progress day as
+      // a miss (streak loss out of nowhere). Instead we REBASE: carry
+      // the current day forward under the new date (re-stamp today's
+      // rows + advance last_active_date) so the day simply continues
+      // and ends at the new time tomorrow.
+      const newToday = currentDayFor(now, day_start_time);
+      const rebase = newToday > profile.last_active_date;
+      if (rebase) {
+        // Rows first, profile second: the profile write is the commit.
+        await Promise.all([
+          supabase.from('tasks')
+            .update({ date: newToday })
+            .eq('user_id', profile.id)
+            .eq('date', profile.last_active_date),
+          supabase.from('bad_habits')
+            .update({ date: newToday })
+            .eq('user_id', profile.id)
+            .eq('date', profile.last_active_date),
+        ]);
+      }
       const { data, error } = await supabase
         .from('profiles')
         .update({
           day_start_time,
           day_start_changes_this_month,
           last_day_start_change: now.toISOString(),
+          ...(rebase ? { last_active_date: newToday } : {}),
         })
         .eq('id', profile.id)
         .select('*')
         .single<Profile>();
       if (error || !data) throw error ?? new Error('Save failed');
       setProfile(data);
+      // Refresh lists under the (possibly re-stamped) active date.
+      void useAppStore.getState().loadForUser(profile.id);
       // Keep reminder times aligned with the new day-start. No-op if
       // the user hasn't enabled notifications.
       void syncRemindersToDayStart(day_start_time, profile.day_streak);
@@ -111,7 +137,8 @@ export default function DayStartTimeScreen() {
         </Text>
         <Text style={[styles.copy, { color: theme.colors.muted }]}>
           Heads-up: if you pick a time later today, your current day ends the moment it arrives.
-          If you pick a time that already passed, the new time applies from tomorrow.
+          If you pick a time that already passed, today simply continues and ends at the new
+          time tomorrow.
         </Text>
 
         <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>

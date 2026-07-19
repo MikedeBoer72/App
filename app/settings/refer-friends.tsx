@@ -99,8 +99,11 @@ export default function ReferFriendsScreen() {
     })();
   }, [profile?.id]);
 
+  // NOTE: no promises about entering the code yet — code redemption
+  // ships in v1.1. The code still travels in the message so early
+  // referrers can be credited retroactively once redemption exists.
   const shareMessage = code
-    ? `Join me on YourLevel and level up your habits! Download: ${APP_STORE_URL} — and enter my referral code ${code} when you subscribe to get me a free month.`
+    ? `Join me on YourLevel and level up your habits! Download: ${APP_STORE_URL} (my referral code: ${code})`
     : '';
 
   async function copy() {

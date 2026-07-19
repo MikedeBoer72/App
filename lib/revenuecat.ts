@@ -21,6 +21,7 @@ import Purchases, {
 } from 'react-native-purchases';
 
 import { supabase } from './supabase';
+import { useAppStore } from '@/store/useAppStore';
 
 /** Identifier of the entitlement to gate Pro features on. */
 export const PRO_ENTITLEMENT_ID = 'pro';
@@ -163,15 +164,33 @@ async function syncEntitlementToSupabase(
   const isSubscribed = !!active;
   const expiresAt = active?.expirationDate ?? null;
 
-  try {
-    await supabase
+  // RevenueCat is the source of truth for the entitlement: reflect it
+  // in the LIVE store immediately so the level-5 gate opens the moment
+  // the purchase confirms — even if the Supabase write below hiccups.
+  const state = useAppStore.getState();
+  if (state.profile && state.profile.id === userId) {
+    const p = state.profile;
+    if (p.is_subscribed !== isSubscribed || p.subscription_expires_at !== expiresAt) {
+      useAppStore.setState({
+        profile:      { ...p, is_subscribed: isSubscribed, subscription_expires_at: expiresAt },
+        isSubscribed,
+      });
+    }
+  }
+
+  // Persist to Supabase. supabase-js reports failures via the returned
+  // `error`, NOT by throwing — check it and retry once so a transient
+  // network blip doesn't leave a paying user flagged unsubscribed.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { error } = await supabase
       .from('profiles')
       .update({
         is_subscribed:           isSubscribed,
         subscription_expires_at: expiresAt,
       })
       .eq('id', userId);
-  } catch (err) {
-    console.warn('[revenuecat] sync to supabase failed:', err);
+    if (!error) return;
+    console.warn(`[revenuecat] sync to supabase failed (attempt ${attempt + 1}):`, error);
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 2000));
   }
 }
