@@ -19,9 +19,6 @@
       "bundleIdentifier": "com.yourlevel.app",
       "usesAppleSignIn": true,
       "appleTeamId": "MH6W95XU8T",
-      "entitlements": {
-        "com.apple.security.application-groups": ["group.com.yourlevel.app"]
-      },
       "infoPlist": {
         "UIBackgroundModes": ["fetch"],
         "ITSAppUsesNonExemptEncryption": false,
@@ -30,7 +27,6 @@
     },
     "plugins": [
       "expo-router",
-      "@bacons/apple-targets",
       [
         "expo-notifications",
         {
