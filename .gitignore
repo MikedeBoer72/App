@@ -10,5 +10,5 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 .env*
+!.env.example
 .DS_Store
-.env
