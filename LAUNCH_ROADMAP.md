@@ -117,6 +117,24 @@ MIGRATION 008 required + npm install (react-native-view-shot).
   Start Over leaving an un-owned font selected (now resets cosmetics
   explicitly).
 
+## 🩹 PAYWALL ESCAPE FIX (July 2026)
+- After a successful purchase/restore the subscription screen now
+  router.replace('/(tabs)') — the paywall guard reached it via
+  replace() (empty back stack), so paying users were trapped with a
+  dead back button. Header back also falls back to /(tabs) when
+  there's no stack.
+- NOT bugs (sandbox/pricing, explained to user): TestFlight sandbox
+  subscriptions are time-compressed (a "month" expires in minutes/~a
+  day and self-renews a few times) — production is real duration.
+  $7.99 USD tier localizes to €8,99 in NL (Apple's tier grid + VAT);
+  the button shows the live StoreKit priceString. To show €7,99 pick
+  that NL tier in App Store Connect → Subscriptions → price.
+- Past level 250 (Cyberpunk, the last theme) leveling CONTINUES with
+  no cap — band 100+ = 1000 XP/level, maxLevel Infinity. Map summit
+  zone grows with the player; tier name stays "Sovereign". No new
+  themes/decorations unlock past their milestones. Consider a prestige
+  / endgame reward post-250 as a v1.x content addition (not a bug).
+
 ## 🚀 PRE-LAUNCH FINISHERS (July 2026)
 
 ### Bug-fix audit pass (10 findings, all addressed in code)

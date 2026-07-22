@@ -83,6 +83,10 @@ export default function SubscriptionScreen() {
         });
       }
       track('subscribe_success');
+      // The paywall guard reached this screen via router.replace(),
+      // which wiped the back stack — so leaving is not automatic.
+      // Now that Pro is active, send the user into the app explicitly.
+      router.replace('/(tabs)');
       Alert.alert('Welcome to Pro', 'Thanks for supporting YourLevel.');
     } else if (!result.cancelled && result.error) {
       Alert.alert('Purchase failed', result.error);
@@ -93,8 +97,18 @@ export default function SubscriptionScreen() {
     if (!profile) return;
     setRestoring(true);
     const ok = await restorePurchases(profile.id);
-    if (ok) await useAppStore.getState().loadForUser(profile.id);
+    if (ok) {
+      await useAppStore.getState().loadForUser(profile.id);
+      const st = useAppStore.getState();
+      if (st.profile && !st.profile.is_subscribed) {
+        useAppStore.setState({
+          profile:      { ...st.profile, is_subscribed: true },
+          isSubscribed: true,
+        });
+      }
+    }
     setRestoring(false);
+    if (ok) router.replace('/(tabs)');
     Alert.alert(
       ok ? 'Restored' : 'Nothing to restore',
       ok
@@ -125,7 +139,14 @@ export default function SubscriptionScreen() {
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => {
+            // Reached via the paywall's router.replace()? Then there's
+            // no back stack — fall back to the dashboard. (A subscribed
+            // user leaves fine; a non-subscribed level>=5 user gets
+            // bounced right back by the guard, which is the intent.)
+            if (router.canGoBack()) router.back();
+            else router.replace('/(tabs)');
+          }}
           hitSlop={10}
           style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.5 : 1 }]}
         >
