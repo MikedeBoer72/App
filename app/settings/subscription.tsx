@@ -38,6 +38,13 @@ import { useAppStore } from '@/store/useAppStore';
 
 const APP_STORE_MANAGE_SUBS_URL = 'https://apps.apple.com/account/subscriptions';
 
+// Apple (guideline 3.1.2) requires functional Terms of Use (EULA) and
+// Privacy Policy links on the paywall for auto-renewing subscriptions.
+// TODO(launch): replace these with the published Notion URLs before
+// submitting — a rejected link fails review.
+const TERMS_URL   = 'https://yourlevel.notion.site/terms';
+const PRIVACY_URL = 'https://yourlevel.notion.site/privacy';
+
 export default function SubscriptionScreen() {
   const router = useRouter();
   const theme = useAppStore((s) => s.theme);
@@ -299,6 +306,17 @@ export default function SubscriptionScreen() {
           hours before the end of the current period. Manage or cancel anytime in Settings → Apple
           ID → Subscriptions.
         </Text>
+
+        {/* Required paywall links: Terms of Use (EULA) + Privacy Policy. */}
+        <View style={styles.legalLinks}>
+          <Pressable onPress={() => void Linking.openURL(TERMS_URL).catch(() => {})} hitSlop={8}>
+            <Text style={[styles.legalLink, { color: theme.colors.secondary }]}>Terms of Use</Text>
+          </Pressable>
+          <Text style={[styles.legalDot, { color: theme.colors.muted }]}>•</Text>
+          <Pressable onPress={() => void Linking.openURL(PRIVACY_URL).catch(() => {})} hitSlop={8}>
+            <Text style={[styles.legalLink, { color: theme.colors.secondary }]}>Privacy Policy</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -332,4 +350,7 @@ const styles = StyleSheet.create({
   signOut:        { alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10, borderWidth: 1, marginTop: 16 },
   signOutText:    { fontSize: 14, fontWeight: '600' },
   legal:          { fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 12 },
+  legalLinks:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 8, marginBottom: 4 },
+  legalLink:      { fontSize: 12, fontWeight: '700', textDecorationLine: 'underline' },
+  legalDot:       { fontSize: 12 },
 });

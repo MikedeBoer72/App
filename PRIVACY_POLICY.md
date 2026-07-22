@@ -1,10 +1,10 @@
 # Privacy Policy for YourLevel
 
-**Last updated: [FILL IN DATE, e.g. 28 June 2026]**
+**Last updated: 22 July 2026**
 
 YourLevel ("we", "us", "the app") is a habit and task tracker. This policy
 explains what data we collect, why, and your rights. Questions:
-**[YOUR SUPPORT EMAIL — e.g. support@yourlevel.app or your personal email]**.
+**mikedeboermario@gmail.com**.
 
 ## Who we are
 
@@ -27,6 +27,11 @@ We collect only what's needed to run the app:
 - **Profile picture** — if you choose to set one, the photo you pick is
   uploaded and stored so it can be shown in the app. We only access your photo
   library when you tap to choose a picture.
+- **Anonymous usage analytics** — we record basic in-app events (for example:
+  app opened, a task completed, a level reached, the paywall viewed) to
+  understand how the app is used and improve it. This is tied to your account
+  id but is **not** used to track you across other apps or websites, and is
+  **not** used for advertising.
 
 We do **not** collect your location, contacts, browsing history, or device
 advertising identifiers. We do **not** show ads. We do **not** sell your data.
@@ -48,6 +53,7 @@ We use trusted third-party services ("processors") to run the app:
 - **Apple** — App Store distribution, Sign in with Apple, and payment
   processing. (https://www.apple.com/legal/privacy/)
 - **Google** — Sign in with Google, if you choose it. (https://policies.google.com/privacy)
+- **PostHog** — anonymous product analytics (in-app events). (https://posthog.com/privacy)
 
 These providers process data on our behalf to deliver the service.
 
@@ -85,4 +91,4 @@ We may update this policy. Material changes will be reflected by updating the
 ## Contact
 
 For any privacy questions or requests:
-**[YOUR SUPPORT EMAIL]**
+**mikedeboermario@gmail.com**

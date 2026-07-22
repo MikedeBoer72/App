@@ -1,0 +1,90 @@
+# YourLevel — App Store listing copy
+
+Everything to paste into App Store Connect. Fields are ready to copy as-is.
+
+---
+
+## App Name (30 char max)
+YourLevel: Level Up Your Life
+
+## Subtitle (30 char max)
+Habits as an RPG
+
+## Promotional Text (170 char max — editable anytime without review)
+Turn your daily habits into a game. Complete tasks, earn XP, level up, and
+travel a world map through new realms. Your first 24 hours unlock every look.
+
+## Keywords (100 char max — comma-separated, no spaces)
+habit,tracker,routine,streak,goals,productivity,xp,level,rpg,gamify,discipline,focus,daily,self
+
+## Description
+
+Level up your real life. YourLevel turns self-improvement into a game you
+actually want to play.
+
+Add the things you want to do each day, check them off to earn XP, and watch
+your level climb. Track the bad habits you're trying to quit — logging one
+costs you XP, so honesty keeps you honest. Keep every day clean to build a
+streak, and travel a beautiful world map that winds from golden deserts and
+lush jungles all the way to a glowing neon city.
+
+WHY YOURLEVEL
+
+• Earn XP and level up — every task moves the needle
+• Build streaks — finish your day clean and keep the fire going
+• A living world map — every level is a step through hand-drawn worlds
+• Unlock premium looks — new fonts, themes and decorations as you rise
+• Bad-habit tracking — own your slips, not just your wins
+• Streak freezes and second chances — one bad day won't wipe you out
+• Weekly reports — see your momentum at a glance
+• Refer friends — share your code and both of you win
+
+TRY EVERYTHING ON DAY ONE
+For your first 24 hours, every font and theme is unlocked — go taste the
+Cyberpunk and Galaxy looks, then level up to earn them back.
+
+YOURLEVEL PRO
+Subscribe to keep leveling past Level 5 and unlock every theme at its
+milestone. One simple monthly subscription supports the app and everything we
+ship next.
+
+Your journey starts at Level 1. How far will you go?
+
+—
+
+Subscription details: YourLevel Pro is an auto-renewing monthly subscription.
+Payment is charged to your Apple ID at confirmation of purchase. It renews
+automatically unless auto-renew is turned off at least 24 hours before the end
+of the current period. Manage or cancel anytime in your App Store account
+settings.
+
+Privacy Policy: <PASTE NOTION PRIVACY URL>
+Terms of Use: <PASTE NOTION TERMS URL>
+
+## What's New (for v1.0)
+Welcome to YourLevel! Build habits, earn XP, climb the world map, and unlock
+new worlds. This is our very first release — thank you for being here early.
+
+---
+
+## App Review notes (the "Notes" box on submission — private to Apple)
+
+Sign in with Apple and Google both work. To reach the paywall and all
+premium features, please use this demo account:
+
+  Email:    <CREATE A DEMO ACCOUNT AND PUT IT HERE>
+  Password: <...>
+
+The paywall appears after Level 5. The demo account is already past Level 5 so
+you can see the subscription screen immediately. Subscriptions use a standard
+auto-renewing monthly product (pro_monthly) via RevenueCat/StoreKit. Terms of
+Use and Privacy Policy links are on the subscription screen.
+
+## Review demo account — how to make it
+1. Sign up fresh in the app (Apple or Google), finish onboarding.
+2. Complete a few tasks across a couple of days, OR tell me and I can bump the
+   account's level/XP directly in Supabase so it's past Level 5.
+3. Put that login in the notes above. (If it's an Apple/Google login with no
+   password, instead create the account, note it, and add a sentence telling
+   the reviewer to use "Continue as guest" is NOT available in production — so
+   a real demo login is required. Easiest: make one Google account for review.)

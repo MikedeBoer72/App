@@ -117,6 +117,22 @@ MIGRATION 008 required + npm install (react-native-view-shot).
   Start Over leaving an un-owned font selected (now resets cosmetics
   explicitly).
 
+## 📄 LEGAL + LISTING CONTENT (July 2026)
+- PRIVACY_POLICY.md: filled (date 22 July 2026, email
+  mikedeboermario@gmail.com) + added PostHog analytics disclosure.
+- TERMS_OF_USE.md: NEW — full EULA/terms (subscription, referral,
+  virtual items, liability, NL governing law).
+- Paywall now shows required Terms of Use + Privacy Policy links
+  (app/settings/subscription.tsx, TERMS_URL/PRIVACY_URL constants).
+  ⚠️ Those two constants are placeholder yourlevel.notion.site URLs —
+  REPLACE with the real published Notion URLs before submitting, or
+  Apple rejects on a dead link.
+- APP_STORE_LISTING.md: NEW — name/subtitle/promo/keywords/description
+  /what's-new/review-notes, ready to paste into App Store Connect.
+- Price: user wants €7,99. That's an App Store Connect change (Subs →
+  Pro Monthly → Subscription Prices → pick the €7,99 NL tier); the
+  app shows whatever StoreKit reports, no code change.
+
 ## 🩹 PAYWALL ESCAPE FIX (July 2026)
 - After a successful purchase/restore the subscription screen now
   router.replace('/(tabs)') — the paywall guard reached it via
