@@ -58,8 +58,8 @@ automatically unless auto-renew is turned off at least 24 hours before the end
 of the current period. Manage or cancel anytime in your App Store account
 settings.
 
-Privacy Policy: <PASTE NOTION PRIVACY URL>
-Terms of Use: <PASTE NOTION TERMS URL>
+Privacy Policy: https://sudsy-tablecloth-e6b.notion.site/3a6b7f726d9880ea9fbad0a6eaa19392
+Terms of Use: https://sudsy-tablecloth-e6b.notion.site/3a6b7f726d9880469208f5a63a146af4
 
 ## What's New (for v1.0)
 Welcome to YourLevel! Build habits, earn XP, climb the world map, and unlock

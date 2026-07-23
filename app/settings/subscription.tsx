@@ -40,10 +40,9 @@ const APP_STORE_MANAGE_SUBS_URL = 'https://apps.apple.com/account/subscriptions'
 
 // Apple (guideline 3.1.2) requires functional Terms of Use (EULA) and
 // Privacy Policy links on the paywall for auto-renewing subscriptions.
-// TODO(launch): replace these with the published Notion URLs before
-// submitting — a rejected link fails review.
-const TERMS_URL   = 'https://yourlevel.notion.site/terms';
-const PRIVACY_URL = 'https://yourlevel.notion.site/privacy';
+// Published on Notion.
+const TERMS_URL   = 'https://sudsy-tablecloth-e6b.notion.site/3a6b7f726d9880469208f5a63a146af4';
+const PRIVACY_URL = 'https://sudsy-tablecloth-e6b.notion.site/3a6b7f726d9880ea9fbad0a6eaa19392';
 
 export default function SubscriptionScreen() {
   const router = useRouter();
