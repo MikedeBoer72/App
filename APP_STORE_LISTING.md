@@ -2,6 +2,20 @@
 
 Everything to paste into App Store Connect. Fields are ready to copy as-is.
 
+## Published URLs (all live on Notion)
+
+- **Support URL** (App Store Connect → Support URL field):
+  https://sudsy-tablecloth-e6b.notion.site/YourLevel-Support-3b7b7f726d9880f99606d0a22e2a84c2
+- **Privacy Policy URL** (App Information + App Privacy):
+  https://sudsy-tablecloth-e6b.notion.site/3a6b7f726d9880ea9fbad0a6eaa19392
+- **Terms of Use URL** (linked from the in-app paywall):
+  https://sudsy-tablecloth-e6b.notion.site/3a6b7f726d9880469208f5a63a146af4
+
+Marketing URL: leave empty.
+
+⚠️ If any of these pages is ever unpublished in Notion, the App Store links
+break and future submissions can be rejected on a dead link.
+
 ---
 
 ## App Name (30 char max)
