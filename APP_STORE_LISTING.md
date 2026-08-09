@@ -106,6 +106,41 @@ shared with data brokers or used for cross-app/ site advertising.)
   Ticking it is the conservative choice; leaving it off is defensible since
   events are identified by User ID. Either is fine — just stay consistent.
 
+---
+
+## Age rating questionnaire — answer key (result: 4+)
+
+These questions ask **"does the app have this feature?"** — not "do you care
+about safety". Answering Yes to a feature we don't have would be the false
+statement, and would also drag in obligations we can't meet.
+
+### In-App Controls
+| Question | Answer | Why |
+|---|---|---|
+| Parental Controls | **No** | The app has no parent/guardian monitoring tools. |
+| Age Assurance | **No** | We never verify a user's age. |
+
+### Capabilities
+| Question | Answer | Why |
+|---|---|---|
+| Unrestricted Web Access | **No** | Legal/App-Store links open in Safari; there is no in-app browser you can navigate freely. |
+| User-Generated Content | **No** | Task/habit text is private to the account. Nothing a user writes is ever distributed to other users. |
+| Social Media | **No** | No feed, no follows, no interaction between users. |
+| Social Media Disabled Under 13 | **No** | Only applies when Social Media = Yes; we don't call the Declared Age Range API. |
+| Messaging and Chat | **No** | Users cannot communicate with each other in the app. |
+| Advertising | **No** | No ad placements. (Promoting our own subscription is not advertising here.) |
+
+⚠️ Don't answer **Yes** to User-Generated Content "to be safe": App Review
+guideline 1.2 then requires content filtering, user reporting, and blocking —
+features this app doesn't have and doesn't need, which becomes a rejection.
+
+Note: a 4+ **content rating** and the 13+ minimum age in our Terms of Use are
+two different things (content suitability vs. a data/contract requirement).
+Both can coexist — that combination is standard for apps like this.
+
+⚠️ Re-check this questionnaire if we ever add: a friends feed, streak duels
+with visible profiles, chat, or ads.
+
 ## App Review notes (the "Notes" box on submission — private to Apple)
 
 Sign in with Apple and Google both work. To reach the paywall and all
