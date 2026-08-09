@@ -154,6 +154,32 @@ you can see the subscription screen immediately. Subscriptions use a standard
 auto-renewing monthly product (pro_monthly) via RevenueCat/StoreKit. Terms of
 Use and Privacy Policy links are on the subscription screen.
 
+---
+
+## Submission checklist (also for future versions)
+
+Pre-flight — the version page must have ALL of:
+- [ ] 5 screenshots in the 6.7" slot
+- [ ] Promotional Text, Description, Keywords, Support URL, Copyright
+- [ ] Build attached (⊕ in the Build section)
+- [ ] **Pro Monthly attached** — see below, this is the easy one to miss
+- [ ] App Review Information: demo email + password + notes
+- [ ] Version Release = "Manually release this version"
+- [ ] App Privacy + Age Rating completed (left sidebar, app-level)
+
+Questions Apple asks DURING submission (answers for YourLevel):
+- **Export compliance / encryption** → usually auto-answered by
+  `ITSAppUsesNonExemptEncryption: false` in app.json. If asked anyway:
+  the app uses only standard HTTPS → exempt.
+- **Content rights — does it contain third-party content?** → No.
+- **Advertising Identifier (IDFA)?** → **No.** (PostHog does not use IDFA;
+  no ad networks are integrated.)
+
+Verifying the subscription rides along: after clicking **Add for Review**,
+App Store Connect shows a summary of everything being submitted. **Pro Monthly
+must appear in that list.** If it doesn't, the app would ship with a paywall
+that can't be purchased.
+
 ## Review demo account — how to make it
 1. Sign up fresh in the app (Apple or Google), finish onboarding.
 2. Complete a few tasks across a couple of days, OR tell me and I can bump the
