@@ -67,6 +67,45 @@ new worlds. This is our very first release — thank you for being here early.
 
 ---
 
+---
+
+## App Privacy questionnaire — the complete answer key
+
+First question: "Do you or your third-party partners collect data from this
+app?" → **Yes**.
+
+Then tick ONLY these six data types. For every one:
+**Linked to the user's identity = YES · Used for tracking = NO.**
+
+| Category | Data type | Why we collect it | Purpose to select |
+|---|---|---|---|
+| Contact Info | Email Address | Apple/Google sign-in creates the account | App Functionality |
+| Contact Info | Name | Display name on the profile | App Functionality |
+| User Content | Photos or Videos | Optional profile picture | App Functionality |
+| User Content | Other User Content | Task + bad-habit names the user types | App Functionality |
+| Purchases | Purchase History | Pro subscription status (via RevenueCat) | App Functionality |
+| Identifiers | User ID | Account id, also sent to analytics | App Functionality, Analytics |
+| Usage Data | Product Interaction | PostHog events (app opened, task done…) | Analytics |
+
+Final question: "Do you use data for tracking purposes?" → **No.** (Nothing is
+shared with data brokers or used for cross-app/ site advertising.)
+
+### Explicitly NOT collected — leave every one of these unticked
+- **Financial Info → Payment Info** — Apple processes all payments; we never
+  see or store card/bank details. Same for Credit Info and Other Financial Info.
+- **Location** (precise or coarse) — never requested.
+- **Health & Fitness** — no HealthKit, no health APIs. A task named "Gym" is
+  free text the user typed, which is already declared as Other User Content.
+- Contacts · Search History · Browsing History · Sensitive Info · Audio Data ·
+  Gameplay Content · Customer Support · Emails or Text Messages · Other Data
+- **Diagnostics (Crash Data / Performance Data)** — nothing collects these
+  today. ⚠️ If Sentry (or any crash reporter) is added later, this must be
+  updated to include Crash Data before that version ships.
+- **Identifiers → Device ID** — borderline: PostHog assigns an anonymous
+  per-install id. Not an advertising identifier and never used for tracking.
+  Ticking it is the conservative choice; leaving it off is defensible since
+  events are identified by User ID. Either is fine — just stay consistent.
+
 ## App Review notes (the "Notes" box on submission — private to Apple)
 
 Sign in with Apple and Google both work. To reach the paywall and all
