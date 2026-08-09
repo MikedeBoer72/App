@@ -117,6 +117,23 @@ MIGRATION 008 required + npm install (react-native-view-shot).
   Start Over leaving an un-owned font selected (now resets cosmetics
   explicitly).
 
+## 🚧 "UNABLE TO ADD FOR REVIEW" BLOCKERS (one-time account setup)
+
+App Store Connect refuses submission until these 5 are done. All are
+dashboard-only, no code:
+1. **DAC7 compliance** — Business (or Agreements, Tax and Banking) → DAC7.
+   EU tax-reporting rule for sellers in the EU; blocks payouts if skipped.
+   Needs legal name, address, date of birth (individuals) and TIN (NL: BSN
+   for individuals, RSIN/KvK + BTW for a registered business).
+2. **Privacy Policy URL** — must ALSO be entered on the App Privacy page
+   (separate field from App Information).
+3. **Content Rights** — App Information → Content Rights → third-party
+   content = No (all art is code-generated; fonts are OFL-licensed).
+4. **App Privacy questionnaire** — must be completed AND published
+   (answer key in APP_STORE_LISTING.md).
+5. **App price tier** — Pricing and Availability → **Free**. This is the
+   APP price, separate from the €7,99 subscription price.
+
 ## 📄 LEGAL + LISTING CONTENT (July 2026)
 - PRIVACY_POLICY.md: filled (date 22 July 2026, email
   mikedeboermario@gmail.com) + added PostHog analytics disclosure.
