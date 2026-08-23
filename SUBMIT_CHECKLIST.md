@@ -1,3 +1,31 @@
+# ⚠️ IF REJECTED WITH "GUIDELINE 2.1 — INFORMATION NEEDED"
+
+Not a code problem. No rebuild, no new version, no re-uploading a build.
+You reply in Resolution Center with a video + notes and the review resumes.
+
+1. Run `scripts/reviewer-account.sql` (demo account → Level 4, NOT
+   subscribed, so the reviewer can actually see the purchase flow).
+2. Verify: sign into the demo account, confirm it shows Level 4 and that
+   Settings → Subscription shows a BUY button (not "Subscribed").
+   Don't complete tasks on it — that would level it past the gate.
+3. Record the screen video on a physical device (shot list below).
+4. Upload it to Google Drive ("anyone with the link") or unlisted YouTube.
+   TEST THE LINK IN A PRIVATE WINDOW — if it asks for a login, the
+   reviewer can't watch it and you get rejected again.
+5. Fill the two [BRACKETS] in REVIEW_NOTES.md (demo password, devices).
+6. Paste those notes into App Review Information → Notes on the version
+   page (so future submissions never get asked again). Save.
+7. Resolution Center → Reply → paste the notes + the video link → Send.
+
+Video shot list (one continuous take, ~3 min):
+launch from home screen → login screen → Google sign-in → dashboard →
+add a task → complete it (+100 XP) → add a bad habit → mark it done
+(-150 XP) → map icon → scroll the map → Settings → Stats → Fonts (switch
+theme) → Subscription (LINGER 5s: price, duration, Terms + Privacy links,
+tap a link) → Account → Delete account confirmation screen → CANCEL.
+
+---
+
 # Tomorrow's plan — build → fix blockers → submit
 
 Do the steps in this order. Step 1 starts a ~25 min cloud build, so you do
