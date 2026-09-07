@@ -7,8 +7,12 @@
 //   - Apple: native expo-apple-authentication. Returns an identity
 //     token that's exchanged for a Supabase session via
 //     signInWithIdToken. Requires Apple Developer setup + an Apple
-//     provider configured in Supabase. Wired but won't work until
-//     that's set up - currently scaffolded only.
+//     provider configured in Supabase.
+//
+// The Apple button MUST be AppleAuthenticationButton (Apple's own
+// native view). A hand-styled button has no  logo artwork and is
+// rejected under App Review guideline 4 (Design) — that happened on
+// build 31.
 
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Linking from 'expo-linking';
@@ -147,6 +151,31 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.actions}>
+        {/* Sign in with Apple uses Apple's OWN native button component,
+            which supplies the  logo, typography, corner radius and
+            localized label. A custom-styled button is rejected under
+            App Review guideline 4 (Design). It is listed first so it is
+            never less prominent than other providers.
+            The native button has no disabled prop, so the wrapper
+            handles the busy state. */}
+        {appleAvailable ? (
+          <View
+            style={[
+              styles.appleWrap,
+              { opacity: pending !== null && pending !== 'apple' ? 0.4 : 1 },
+            ]}
+            pointerEvents={pending !== null ? 'none' : 'auto'}
+          >
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+              cornerRadius={14}
+              style={styles.appleButton}
+              onPress={handleApple}
+            />
+          </View>
+        ) : null}
+
         <Pressable
           accessibilityRole="button"
           disabled={pending !== null}
@@ -167,29 +196,6 @@ export default function LoginScreen() {
             </Text>
           )}
         </Pressable>
-
-        {appleAvailable ? (
-          <Pressable
-            accessibilityRole="button"
-            disabled={pending !== null}
-            onPress={handleApple}
-            style={({ pressed }) => [
-              styles.button,
-              styles.appleButton,
-              {
-                opacity: pending !== null && pending !== 'apple' ? 0.4 : pressed ? 0.85 : 1,
-              },
-            ]}
-          >
-            {pending === 'apple' ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>
-                Continue with Apple
-              </Text>
-            )}
-          </Pressable>
-        ) : null}
 
         {/* Dev-only escape hatch. __DEV__ strips this in production
             builds (EAS Build profile=production), so the App Store
@@ -239,7 +245,9 @@ const styles = StyleSheet.create({
   tagline:     { fontSize: 16, marginTop: 8 },
   actions:     { gap: 12 },
   button:      { height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  appleButton: { backgroundColor: '#000000', borderWidth: StyleSheet.hairlineWidth, borderColor: '#FFFFFF22' },
+  // Apple's native button is a real UIView: it needs explicit size.
+  appleWrap:   { height: 52 },
+  appleButton: { width: '100%', height: 52 },
   guestButton: { backgroundColor: 'transparent', borderWidth: 1 },
   buttonText:  { fontSize: 16, fontWeight: '600' },
   fine:        { fontSize: 12, textAlign: 'center' },
