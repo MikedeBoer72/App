@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -86,7 +87,13 @@ export default function AddBadHabitsScreen() {
 
     const inserted = await addBadHabit(trimmedName);
     setBusy(false);
-    if (!inserted) return;
+    if (!inserted) {
+      Alert.alert(
+        'Could not add bad habit',
+        "Check your connection and try again. If you've hit today's bad habits limit, remove one first.",
+      );
+      return;
+    }
     play('tap');
 
     setHistory((prev) => {

@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -99,7 +100,13 @@ export default function AddTasksScreen() {
 
     const inserted = await addTask(trimmedName);
     setBusy(false);
-    if (!inserted) return;
+    if (!inserted) {
+      Alert.alert(
+        'Could not add task',
+        "Check your connection and try again. If you've hit today's tasks limit, remove one first.",
+      );
+      return;
+    }
     play('tap');
 
     // During the walkthrough's "add your first task" step, adding one

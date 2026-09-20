@@ -69,17 +69,17 @@ There is exactly one purchasable product:
 What it unlocks: the ability to continue leveling beyond Level 5, and all
 premium themes at their milestone levels.
 
-How to navigate to the purchase screen (two routes):
-  a) Tap the avatar (top-left) → "Subscription". The screen displays the
-     subscription title, duration and localized price, and includes tappable
-     links to the Terms of Use and the Privacy Policy.
-  b) Complete 3 tasks on the dashboard to reach Level 5. The subscription
-     screen is then presented automatically.
+How to navigate to the purchase screen:
+  Tap the avatar (top-left) → "Subscription". The screen displays the
+  subscription title, duration and localized price, and includes tappable
+  links to the Terms of Use and the Privacy Policy. This is the recommended
+  route and keeps the rest of the app available.
 
-Please note that (b) is intentional product behaviour, not a bug: YourLevel
-is free to use through Level 5, after which a Pro subscription is required to
-keep leveling. The demo account is supplied at Level 4 so the whole app can
-be explored before that gate is reached.
+YourLevel is free to use through Level 5; beyond that a Pro subscription is
+required to keep leveling, and the subscription screen is then presented
+automatically. That gate is intentional product behaviour, not a bug. The
+demo account is supplied at Level 4 so the entire app can be explored
+first.
 
 ---
 

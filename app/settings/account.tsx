@@ -99,8 +99,11 @@ export default function AccountScreen() {
 
   async function signOut() {
     try {
-      reset();
+      // Sign out FIRST: reset() sets hydrated:false, which renders the
+      // splash. Doing it before the await blanks the app, and a slow or
+      // failed signOut would leave it stuck there.
       await supabase.auth.signOut();
+      reset();
     } catch (err) {
       Alert.alert('Sign out failed', err instanceof Error ? err.message : String(err));
     }
@@ -121,8 +124,8 @@ export default function AccountScreen() {
         const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
         if (error) throw error;
       }
-      reset();
       await supabase.auth.signOut();
+      reset();
     } catch (err) {
       Alert.alert('Could not delete account', err instanceof Error ? err.message : String(err));
       setDeleting(false);

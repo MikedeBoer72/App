@@ -11,14 +11,23 @@
 // Coordinates are in the overlay's own space — the parent converts
 // from window coords (measureInWindow) before passing them in.
 
-import { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 
 import type { useAppStore } from '@/store/useAppStore';
 
-const SCREEN_H = Dimensions.get('window').height;
 const SCRIM = 'rgba(0,0,0,0.78)';
 const HOLE_PAD = 8;
+/** Fallback card height used before the card has measured itself. */
+const CARD_H_GUESS = 190;
 
 export interface HoleRect {
   x: number;
@@ -57,6 +66,16 @@ export function TutorialOverlay({
     Animated.timing(fade, { toValue: 1, duration: 220, useNativeDriver: true }).start();
   }, [fade, stepIndex]);
 
+  // Live dimensions: iPad compatibility mode can resize the window at
+  // runtime (the 1x/2x scale toggle), which would permanently desync a
+  // value captured once at module load.
+  const { height: winH } = useWindowDimensions();
+  const [cardH, setCardH] = useState(CARD_H_GUESS);
+  const onCardLayout = (e: LayoutChangeEvent) => {
+    const next = e.nativeEvent.layout.height;
+    if (next > 0 && Math.abs(next - cardH) > 1) setCardH(next);
+  };
+
   const h = hole
     ? {
         x: hole.x - HOLE_PAD,
@@ -67,7 +86,20 @@ export function TutorialOverlay({
     : null;
 
   // Card above the hole when the hole sits in the lower half.
-  const cardBelow = !h || h.y + h.h / 2 < SCREEN_H / 2;
+  const cardBelow = !h || h.y + h.h / 2 < winH / 2;
+
+  // The card carries the ONLY Next / Skip buttons, so it must never be
+  // pushed off-screen — which is exactly what happened for a target
+  // below the fold, leaving the walkthrough unescapable. Always clamp
+  // into the viewport, whichever side we prefer.
+  const MARGIN = 16;
+  const maxTop = Math.max(MARGIN, winH - cardH - MARGIN);
+  const cardTop = h
+    ? Math.min(
+        Math.max(MARGIN, cardBelow ? h.y + h.h + MARGIN : h.y - cardH - MARGIN),
+        maxTop,
+      )
+    : Math.max(MARGIN, Math.min(winH * 0.32, maxTop));
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade, zIndex: 100 }]} pointerEvents="box-none">
@@ -98,18 +130,11 @@ export function TutorialOverlay({
       )}
 
       {/* Tooltip card */}
-      <View
-        pointerEvents="box-none"
-        style={[
-          styles.cardWrap,
-          h
-            ? cardBelow
-              ? { top: h.y + h.h + 16 }
-              : { bottom: SCREEN_H - h.y + 16 }
-            : { top: '32%' },
-        ]}
-      >
-        <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.accent }]}>
+      <View pointerEvents="box-none" style={[styles.cardWrap, { top: cardTop }]}>
+        <View
+          onLayout={onCardLayout}
+          style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.accent }]}
+        >
           <Text style={[styles.kicker, { color: theme.colors.accent, fontFamily: theme.fonts.bold }]}>
             {stepIndex + 1} / {stepCount}
           </Text>
@@ -122,7 +147,12 @@ export function TutorialOverlay({
             <Pressable onPress={onSkip} hitSlop={8} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
               <Text style={[styles.skip, { color: theme.colors.muted }]}>Skip tutorial</Text>
             </Pressable>
-            {nextLabel && onNext ? (
+            {/* A forced-tap step whose target has vanished (the user
+                deleted the very task we spotlighted, or it scrolled out
+                of the tree) would otherwise be a dead end: no highlight
+                to tap and no button. Fall back to an explicit Continue
+                so the walkthrough can always be finished. */}
+            {(nextLabel || !h) && onNext ? (
               <Pressable
                 onPress={onNext}
                 style={({ pressed }) => [
@@ -130,7 +160,9 @@ export function TutorialOverlay({
                   { backgroundColor: theme.colors.accent, opacity: pressed ? 0.75 : 1 },
                 ]}
               >
-                <Text style={[styles.nextText, { color: theme.colors.background }]}>{nextLabel}</Text>
+                <Text style={[styles.nextText, { color: theme.colors.background }]}>
+                  {nextLabel ?? 'Continue'}
+                </Text>
               </Pressable>
             ) : (
               <Text style={[styles.forced, { color: theme.colors.accent }]}>Tap the highlighted spot</Text>

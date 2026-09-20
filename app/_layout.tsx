@@ -89,10 +89,13 @@ export default function RootLayout() {
 
   // Subscribe to Supabase auth changes.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setSessionChecked(true);
-    });
+    // A rejection here previously left sessionChecked false forever —
+    // a bare splash spinner with no UI and no way out. Always mark the
+    // check done; a null session just routes to login.
+    supabase.auth.getSession()
+      .then(({ data }) => setSession(data.session))
+      .catch((err) => console.warn('[layout] getSession failed', err))
+      .finally(() => setSessionChecked(true));
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
       if (!sess) {
@@ -151,6 +154,23 @@ export default function RootLayout() {
     const uid = session?.user?.id;
     if (uid) void loadForUser(uid);
   }, [session?.user?.id, loadForUser]);
+
+  // Watchdog: Supabase calls have no timeout, so a stalled connection
+  // (captive portal, flaky wifi) used to leave a bare splash spinner
+  // forever — LoadError is only reachable once hydrated is true. After
+  // 12s, surface the recoverable error screen instead.
+  useEffect(() => {
+    if (!session?.user?.id || hydrated) return;
+    const t = setTimeout(() => {
+      if (!useAppStore.getState().hydrated) {
+        useAppStore.setState({
+          hydrated:  true,
+          loadError: 'Couldn’t reach the server. Check your connection and try again.',
+        });
+      }
+    }, 12_000);
+    return () => clearTimeout(t);
+  }, [session?.user?.id, hydrated]);
 
   // Roll the day over WITHOUT an app restart. The reset otherwise only
   // ran inside loadForUser at startup, so an app left open (or

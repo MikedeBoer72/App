@@ -281,21 +281,48 @@ export default function Dashboard() {
       map:       mapRef,
       avatar:    avatarRef,
     };
-    const timer = setTimeout(() => {
-      const target = refs[step.target as TutorialTarget].current;
-      const root = rootRef.current;
-      if (!target || !root) {
-        setTutorialHole(null);
-        return;
-      }
-      root.measureInWindow((rx, ry) => {
-        target.measureInWindow((x, y, w, h) => {
-          setTutorialHole({ x: x - rx, y: y - ry, w, h });
-        });
-      });
-    }, 150);
+    const timer = setTimeout(measureTutorialHole, 150);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorialStep, tasks.length]);
+
+  // Measures the current step's target into overlay coordinates.
+  // Declared as a callback so the scroll handler can reuse it: the page
+  // remains scrollable during the tutorial (NestableScrollContainer
+  // ignores scrollEnabled), so a stale hole would sit over empty space
+  // and the forced-tap steps could not be completed.
+  function measureTutorialHole() {
+    const stepIdx = useAppStore.getState().tutorialStep;
+    if (stepIdx == null) return;
+    const step = TUTORIAL_STEPS[stepIdx];
+    if (!step?.target) {
+      setTutorialHole(null);
+      return;
+    }
+    const refs: Record<TutorialTarget, React.RefObject<View | null>> = {
+      addTask:   addTaskRef,
+      firstTask: firstTaskRef,
+      streak:    streakRef,
+      habits:    habitsRef,
+      map:       mapRef,
+      avatar:    avatarRef,
+    };
+    const target = refs[step.target].current;
+    const root = rootRef.current;
+    if (!target || !root) {
+      setTutorialHole(null);
+      return;
+    }
+    root.measureInWindow((rx, ry) => {
+      target.measureInWindow((x, y, w, h) => {
+        setTutorialHole({ x: x - rx, y: y - ry, w, h });
+      });
+    });
+  }
+
+  function remeasureTutorialHole() {
+    measureTutorialHole();
+  }
 
   function onTutorialNext() {
     if (tutorialStep == null) return;
@@ -425,8 +452,9 @@ export default function Dashboard() {
       />
       <NestableScrollContainer
         contentContainerStyle={styles.scroll}
-        scrollEnabled={tutorialStep == null}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={tutorialStep != null ? remeasureTutorialHole : undefined}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -762,7 +790,7 @@ export default function Dashboard() {
           stepIndex={tutorialStep}
           stepCount={TUTORIAL_STEPS.length}
           theme={theme}
-          onNext={TUTORIAL_STEPS[tutorialStep].next ? onTutorialNext : undefined}
+          onNext={onTutorialNext}
           onSkip={() => void finishTutorial()}
         />
       ) : null}
