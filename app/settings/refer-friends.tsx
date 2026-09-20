@@ -103,7 +103,7 @@ export default function ReferFriendsScreen() {
   // (onboarding), conversion + the free month are handled by the
   // redeem-referral / convert-referral Edge Functions.
   const shareMessage = code
-    ? `Join me on YourLevel and level up your habits! Download: ${APP_STORE_URL} — enter my code ${code} when you sign up. When you go Pro, I get a free month!`
+    ? `Join me on YourLevel and level up your habits! Download: ${APP_STORE_URL} — enter my code ${code} when you sign up.`
     : '';
 
   async function copy() {
@@ -146,10 +146,10 @@ export default function ReferFriendsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <Text style={[styles.headline, { color: theme.colors.primary }]}>
-          Refer Friends, Get 1 Free Month
+          Refer Friends, Get Free Pro
         </Text>
         <Text style={[styles.copy, { color: theme.colors.secondary }]}>
-          Share your code. When a friend downloads YourLevel and subscribes with it, your next month is on us.
+          Share your code. When a friend downloads YourLevel and subscribes with it, we add a free month of Pro to your account.
         </Text>
 
         {/* Code card */}
@@ -224,7 +224,7 @@ export default function ReferFriendsScreen() {
         <Text style={[styles.howTitle, { color: theme.colors.primary }]}>How it works</Text>
         <Step n={1} text='Tap "Share" and send your code to a friend.'           theme={theme} />
         <Step n={2} text="Your friend downloads YourLevel and enters your code."      theme={theme} />
-        <Step n={3} text="When they subscribe, your next month is free."         theme={theme} />
+        <Step n={3} text="When they subscribe, a free month of Pro is added to your account." theme={theme} />
       </ScrollView>
     </SafeAreaView>
   );

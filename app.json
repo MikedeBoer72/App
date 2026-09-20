@@ -20,7 +20,9 @@
       "usesAppleSignIn": true,
       "appleTeamId": "MH6W95XU8T",
       "infoPlist": {
-        "UIBackgroundModes": ["fetch"],
+        "UIBackgroundModes": [
+          "fetch"
+        ],
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryAddUsageDescription": "Allow YourLevel to save your progress share cards to your photos."
       }
@@ -36,7 +38,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow YourLevel to access your photos to set your profile picture."
+          "photosPermission": "Allow YourLevel to access your photos to set your profile picture.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ]
     ],

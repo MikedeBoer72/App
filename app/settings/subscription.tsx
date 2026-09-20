@@ -12,7 +12,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +25,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PurchasesPackage } from 'react-native-purchases';
 
+import { PRIVACY_URL, TERMS_URL } from '@/constants/legal';
 import { track } from '@/lib/analytics';
 
 import {
@@ -38,11 +39,6 @@ import { useAppStore } from '@/store/useAppStore';
 
 const APP_STORE_MANAGE_SUBS_URL = 'https://apps.apple.com/account/subscriptions';
 
-// Apple (guideline 3.1.2) requires functional Terms of Use (EULA) and
-// Privacy Policy links on the paywall for auto-renewing subscriptions.
-// Published on Notion.
-const TERMS_URL   = 'https://sudsy-tablecloth-e6b.notion.site/3a6b7f726d9880469208f5a63a146af4';
-const PRIVACY_URL = 'https://sudsy-tablecloth-e6b.notion.site/3a6b7f726d9880ea9fbad0a6eaa19392';
 
 export default function SubscriptionScreen() {
   const router = useRouter();
@@ -60,14 +56,16 @@ export default function SubscriptionScreen() {
     ? new Date(profile.subscription_expires_at)
     : null;
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const pkgs = await getOfferingPackages();
-      setPackages(pkgs);
-      setLoading(false);
-    })();
+  const loadPackages = useCallback(async () => {
+    setLoading(true);
+    const pkgs = await getOfferingPackages();
+    setPackages(pkgs);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    void loadPackages();
+  }, [loadPackages]);
 
   async function onBuy(pkg: PurchasesPackage) {
     if (!profile) return;
@@ -215,13 +213,28 @@ export default function SubscriptionScreen() {
               </Text>
             </View>
           ) : (
+            // Offerings can fail to load transiently (network, StoreKit).
+            // Never show internal setup instructions here — a user (or an
+            // App Reviewer bounced in by the level gate) would be staring
+            // at a developer to-do with no way forward. Neutral copy plus
+            // a real Retry.
             <View style={[styles.unavailable, { backgroundColor: theme.colors.surface }]}>
               <Ionicons name="cloud-offline-outline" size={20} color={theme.colors.muted} />
-              <Text style={[styles.unavailableText, { color: theme.colors.secondary }]}>
-                {configured
-                  ? 'No subscription products available yet. Set up the product in App Store Connect and offering in RevenueCat.'
-                  : 'Subscriptions unavailable. RevenueCat is not configured for this build (Expo Go does not include native modules; this works in EAS builds).'}
-              </Text>
+              <View style={styles.unavailableBody}>
+                <Text style={[styles.unavailableText, { color: theme.colors.secondary }]}>
+                  Couldn&apos;t load subscription options. Check your connection and try again.
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={loadPackages}
+                  style={({ pressed }) => [
+                    styles.retry,
+                    { borderColor: theme.colors.accent, opacity: pressed ? 0.6 : 1 },
+                  ]}
+                >
+                  <Text style={[styles.retryText, { color: theme.colors.accent }]}>Try again</Text>
+                </Pressable>
+              </View>
             </View>
           )
         ) : (
@@ -242,10 +255,13 @@ export default function SubscriptionScreen() {
               {buyingId === pkg.identifier ? (
                 <ActivityIndicator color={theme.colors.background} />
               ) : (
+                // Guideline 3.1.2: state the product name, the real
+                // localized price and the period explicitly. packageType
+                // can read "custom", so never derive the period from it.
                 <Text style={[styles.planText, { color: theme.colors.background }]}>
                   {isSubscribed
-                    ? `Subscribed — ${pkg.product.priceString} / ${pkg.packageType.toLowerCase()}`
-                    : `Subscribe — ${pkg.product.priceString} / ${pkg.packageType.toLowerCase()}`}
+                    ? `Subscribed — YourLevel Pro, ${pkg.product.priceString}/month`
+                    : `Subscribe — YourLevel Pro, ${pkg.product.priceString}/month`}
                 </Text>
               )}
             </Pressable>
@@ -340,7 +356,10 @@ const styles = StyleSheet.create({
   bullet:         { fontSize: 14, lineHeight: 22 },
   center:         { paddingVertical: 24, alignItems: 'center' },
   unavailable:    { flexDirection: 'row', gap: 10, alignItems: 'flex-start', padding: 14, borderRadius: 12 },
-  unavailableText:{ flex: 1, fontSize: 13, lineHeight: 18 },
+  unavailableBody:{ flex: 1, gap: 10 },
+  unavailableText:{ fontSize: 13, lineHeight: 18 },
+  retry:          { alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  retryText:      { fontSize: 13, fontWeight: '700' },
   plan:           { height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   planText:       { fontSize: 16, fontWeight: '700' },
   footerActions:  { gap: 10 },

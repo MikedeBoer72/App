@@ -10,7 +10,7 @@
 
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -63,11 +63,21 @@ export default function Onboarding() {
   const [saving, setSaving] = useState(false);
 
   // Sign in with Apple already gives us the user's name, and App Review
-  // guideline 4 forbids asking for it again. Decided once on mount so
-  // the step list can't shift underneath the user mid-flow.
-  const [order] = useState<StepId[]>(() =>
+  // guideline 4 forbids asking for it again.
+  const [order, setOrder] = useState<StepId[]>(() =>
     (profile?.username ?? '').trim().length > 0 ? WITHOUT_NAME : WITH_NAME,
   );
+
+  // The Apple name can arrive just AFTER this screen mounts: the profile
+  // row is created by a database trigger, and login.tsx writes the name
+  // and refreshes the store a moment later. Whichever load lands first
+  // decides the initial list, so re-check while the user is still on the
+  // first step. This only ever narrows (drops the name step), never adds
+  // one back under them.
+  const liveName = (profile?.username ?? '').trim();
+  useEffect(() => {
+    if (stepIndex === 0 && liveName.length > 0) setOrder(WITHOUT_NAME);
+  }, [liveName, stepIndex]);
 
   const step = order[Math.min(stepIndex, order.length - 1)]!;
   const isLast = stepIndex === order.length - 1;

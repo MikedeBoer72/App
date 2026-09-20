@@ -304,10 +304,13 @@ export const THEMES: readonly Theme[] = [
   },
   {
     id:          'solo',
-    name:        'Solo Leveling',
+    // NOTE: the id stays 'solo' so saved profiles keep working, but the
+    // user-visible name must never reference a third-party franchise
+    // (App Review guideline 5.2.1). The look is unchanged.
+    name:        'Eclipse',
     unlockLevel: 100,
     isPaid:      true,
-    description: 'Shadow Monarch — deep blue-black with violet runes.',
+    description: 'Deep blue-black with violet runes.',
     fontLabel:   'Orbitron',
     fonts:       ORBITRON,
     colors: {

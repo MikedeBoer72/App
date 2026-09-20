@@ -29,6 +29,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PRIVACY_URL, TERMS_URL } from '@/constants/legal';
 import { DEFAULT_THEME_ID, getTheme } from '@/constants/themes';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/useAppStore';
@@ -40,7 +41,10 @@ type Pending = 'google' | 'apple' | 'guest' | null;
 export default function LoginScreen() {
   const theme = getTheme(DEFAULT_THEME_ID);
   const [pending, setPending] = useState<Pending>(null);
-  const [appleAvailable, setAppleAvailable] = useState(false);
+  // Assume available on iOS so the Apple button is never briefly
+  // absent while isAvailableAsync resolves (guideline 4.8 is about
+  // relative prominence). Hidden only on an explicit negative.
+  const [appleAvailable, setAppleAvailable] = useState(Platform.OS === 'ios');
 
   useEffect(() => {
     if (Platform.OS === 'ios') {
@@ -246,9 +250,23 @@ export default function LoginScreen() {
         ) : null}
       </View>
 
-      <Text style={[styles.fine, { color: theme.colors.muted }]}>
-        By continuing you agree to fewer bad habits and more wins.
-      </Text>
+      {/* Creating an account is where the agreement happens, so the
+          Terms and Privacy Policy have to be reachable from here — not
+          only from the paywall. */}
+      <View style={styles.legal}>
+        <Text style={[styles.fine, { color: theme.colors.muted }]}>
+          By continuing you agree to our
+        </Text>
+        <View style={styles.legalLinks}>
+          <Pressable onPress={() => void Linking.openURL(TERMS_URL).catch(() => {})} hitSlop={8}>
+            <Text style={[styles.legalLink, { color: theme.colors.secondary }]}>Terms of Use</Text>
+          </Pressable>
+          <Text style={[styles.fine, { color: theme.colors.muted }]}>and</Text>
+          <Pressable onPress={() => void Linking.openURL(PRIVACY_URL).catch(() => {})} hitSlop={8}>
+            <Text style={[styles.legalLink, { color: theme.colors.secondary }]}>Privacy Policy</Text>
+          </Pressable>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -303,5 +321,8 @@ const styles = StyleSheet.create({
   appleButton: { width: '100%', height: 52 },
   guestButton: { backgroundColor: 'transparent', borderWidth: 1 },
   buttonText:  { fontSize: 16, fontWeight: '600' },
+  legal:       { alignItems: 'center', gap: 4 },
+  legalLinks:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legalLink:   { fontSize: 12, fontWeight: '700', textDecorationLine: 'underline' },
   fine:        { fontSize: 12, textAlign: 'center' },
 });

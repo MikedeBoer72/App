@@ -24,8 +24,7 @@ const ROWS: readonly Row[] = [
   { icon: 'notifications-outline', label: 'Notifications',                href: '/settings/notifications' },
   { icon: 'musical-notes-outline', label: 'Sound',                        href: '/settings/sound' },
   { icon: 'person-outline',     label: 'Account',                         href: '/settings/account' },
-  { icon: 'share-social-outline', label: 'Social Media',                  href: '/settings/social-media' },
-  { icon: 'gift-outline',       label: 'Refer Friends for 1 Free Month',  href: '/settings/refer-friends' },
+  { icon: 'gift-outline',       label: 'Refer Friends',                   href: '/settings/refer-friends' },
   { icon: 'refresh-outline',    label: 'Start Over',                      href: '/settings/start-over', destructive: true },
 ] as const;
 

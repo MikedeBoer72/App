@@ -51,7 +51,7 @@ WHY YOURLEVEL
 • Bad-habit tracking — own your slips, not just your wins
 • Streak freezes and second chances — one bad day won't wipe you out
 • Weekly reports — see your momentum at a glance
-• Refer friends — when a friend you invited goes Pro, you get a free month
+• Refer friends — when a friend you invited goes Pro, a free month is added to your account
 
 TRY EVERYTHING ON DAY ONE
 For your first 24 hours, every font and theme is unlocked — go taste the

@@ -47,19 +47,6 @@ export default function AboutScreen() {
           you'll actually keep playing.
         </Paragraph>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/settings/social-media')}
-          style={({ pressed }) => [
-            styles.cta,
-            { backgroundColor: theme.colors.accent, opacity: pressed ? 0.8 : 1 },
-          ]}
-        >
-          <Ionicons name="share-social-outline" size={18} color={theme.colors.background} />
-          <Text style={[styles.ctaText, { color: theme.colors.background }]}>
-            Follow us on Social Media
-          </Text>
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

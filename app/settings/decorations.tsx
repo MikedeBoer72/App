@@ -1,7 +1,6 @@
-// Decorations picker. Mirrors the Fonts screen exactly: status
-// resolves to active / available / needs-pro / locked; in __DEV__
-// the level + pro gates are bypassed so every decoration is
-// previewable.
+// Decorations picker. Mirrors the Fonts screen: status resolves to
+// active / available / needs-pro / locked. The level and Pro gates
+// always apply — there is no __DEV__ bypass here.
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';

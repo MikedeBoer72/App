@@ -95,7 +95,12 @@ MIGRATION 008 required + npm install (react-native-view-shot).
        (RevenueCat dashboard → API keys → secret key. Without it,
        conversions are still recorded; the free month can be granted
        retroactively once set.)
-- HOME-SCREEN WIDGET (small + medium): level ring + streak + XP in
+- HOME-SCREEN WIDGET — ⚠️ NOT IN THE BUILD. The @bacons/apple-targets
+  plugin broke the EAS build and was removed from app.json; the code
+  under targets/ and lib/widget.ts is inert (it silently no-ops).
+  Nothing in the app or the App Store listing promises a widget.
+  Original description follows:
+- (widget, when re-enabled): level ring + streak + XP in
   the active theme's colors, updates on every XP change via App Group
   storage (@bacons/apple-targets; targets/widget/index.swift).
   ⚠️ First build after this adds a new widget target — EAS will ask to

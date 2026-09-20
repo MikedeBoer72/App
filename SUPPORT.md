@@ -40,7 +40,8 @@ still doesn't appear, email us with the Apple ID email you purchased with.
 
 **How do referrals work?**
 Share your code from Settings → Refer Friends. When someone signs up using
-your code and later subscribes to Pro, you receive one free month.
+your code and later subscribes to Pro, a free month of Pro is added to your
+account.
 
 **How do I delete my account?**
 In the app: Settings → Account → Delete account. This permanently removes your
