@@ -261,21 +261,32 @@ function describe(err: unknown): string {
 /**
  * Stores the name Apple supplied on first sign-in.
  *
- * The profile row is created by a database trigger when the auth user
- * is inserted, which can land a moment after sign-in returns — hence
- * the short retry. `.is('username', null)` means a name the user has
- * already chosen is never overwritten.
+ * The profile row is created by the handle_new_user database trigger
+ * when the auth user is inserted, which can land a moment after
+ * sign-in returns — hence the short retry until the row appears.
+ *
+ * The trigger seeds username from the token's `name` claim; Apple's
+ * identity token has no such claim, so it arrives NULL (or, defensively,
+ * blank). We fill it only when it is actually blank, so a name the user
+ * or another provider supplied is never overwritten.
  */
 async function persistAppleName(userId: string, fullName: string): Promise<void> {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const { data, error } = await supabase
+    const { data: existing } = await supabase
       .from('profiles')
-      .update({ username: fullName })
+      .select('username')
       .eq('id', userId)
-      .is('username', null)
-      .select('id');
-    if (!error && data && data.length > 0) return;
-    if (error) console.warn('[login] could not save the Apple name', error);
+      .maybeSingle<{ username: string | null }>();
+
+    if (existing) {
+      if ((existing.username ?? '').trim().length > 0) return; // already named
+      const { error } = await supabase
+        .from('profiles')
+        .update({ username: fullName })
+        .eq('id', userId);
+      if (!error) return;
+      console.warn('[login] could not save the Apple name', error);
+    }
     await new Promise((resolve) => setTimeout(resolve, 400));
   }
 }
