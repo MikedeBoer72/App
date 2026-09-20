@@ -31,6 +31,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DEFAULT_THEME_ID, getTheme } from '@/constants/themes';
 import { supabase } from '@/lib/supabase';
+import { useAppStore } from '@/store/useAppStore';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -126,11 +127,30 @@ export default function LoginScreen() {
       const idToken = credential.identityToken;
       if (!idToken) throw new Error('Apple did not return an identity token');
 
-      const { error } = await supabase.auth.signInWithIdToken({
+      const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
         token:    idToken,
       });
       if (error) throw error;
+
+      // Apple hands us the user's name — but ONLY on the very first
+      // authorization, and only in this credential object (it is never
+      // in the identity token). Capture it now or it is gone forever.
+      // App Review guideline 4 requires that we do NOT then ask the
+      // user to type a name onboarding already has.
+      const appleName = [
+        credential.fullName?.givenName?.trim(),
+        credential.fullName?.familyName?.trim(),
+      ].filter(Boolean).join(' ');
+
+      const uid = data.user?.id;
+      if (uid && appleName) {
+        await persistAppleName(uid, appleName);
+        // Refresh the store so onboarding sees the name and skips its
+        // name step (loadForUser is serialized, so this lands after any
+        // load already kicked off by the auth state change).
+        await useAppStore.getState().loadForUser(uid);
+      }
     } catch (err: unknown) {
       // Cancellation isn't an error worth surfacing.
       const code = (err as { code?: string }).code;
@@ -236,6 +256,28 @@ export default function LoginScreen() {
 function describe(err: unknown): string {
   if (err instanceof Error) return err.message;
   return String(err);
+}
+
+/**
+ * Stores the name Apple supplied on first sign-in.
+ *
+ * The profile row is created by a database trigger when the auth user
+ * is inserted, which can land a moment after sign-in returns — hence
+ * the short retry. `.is('username', null)` means a name the user has
+ * already chosen is never overwritten.
+ */
+async function persistAppleName(userId: string, fullName: string): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ username: fullName })
+      .eq('id', userId)
+      .is('username', null)
+      .select('id');
+    if (!error && data && data.length > 0) return;
+    if (error) console.warn('[login] could not save the Apple name', error);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
 }
 
 const styles = StyleSheet.create({

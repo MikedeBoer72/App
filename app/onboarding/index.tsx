@@ -48,7 +48,8 @@ const SLIDES: Record<
   },
 };
 
-const ORDER: StepId[] = ['welcome', 'name', 'time'];
+const WITH_NAME:    StepId[] = ['welcome', 'name', 'time'];
+const WITHOUT_NAME: StepId[] = ['welcome', 'time'];
 
 export default function Onboarding() {
   const theme = useAppStore((s) => s.theme);
@@ -61,8 +62,15 @@ export default function Onboarding() {
   const [referralCode, setReferralCode] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const step = ORDER[stepIndex]!;
-  const isLast = stepIndex === ORDER.length - 1;
+  // Sign in with Apple already gives us the user's name, and App Review
+  // guideline 4 forbids asking for it again. Decided once on mount so
+  // the step list can't shift underneath the user mid-flow.
+  const [order] = useState<StepId[]>(() =>
+    (profile?.username ?? '').trim().length > 0 ? WITHOUT_NAME : WITH_NAME,
+  );
+
+  const step = order[Math.min(stepIndex, order.length - 1)]!;
+  const isLast = stepIndex === order.length - 1;
   const canAdvance = step !== 'name' || name.trim().length > 0;
 
   function next() {
@@ -70,7 +78,7 @@ export default function Onboarding() {
       void finish();
       return;
     }
-    setStepIndex((i) => Math.min(i + 1, ORDER.length - 1));
+    setStepIndex((i) => Math.min(i + 1, order.length - 1));
   }
 
   function back() {
@@ -131,7 +139,7 @@ export default function Onboarding() {
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.background }]}>
       {/* Progress dots */}
       <View style={styles.dots}>
-        {ORDER.map((s, i) => (
+        {order.map((s, i) => (
           <View
             key={s}
             style={[

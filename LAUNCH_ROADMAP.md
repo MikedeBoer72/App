@@ -117,6 +117,26 @@ MIGRATION 008 required + npm install (react-native-view-shot).
   Start Over leaving an un-owned font selected (now resets cosmetics
   explicitly).
 
+## 📜 APP REVIEW REJECTION HISTORY (so we don't repeat them)
+
+1. **Build 31 — Guideline 2.1, Information Needed.** Not a code issue;
+   Apple wanted a demo video + detailed notes. Fixed by replying in
+   Resolution Center (notes now also live in App Review Information).
+   Also discovered the demo account was marked subscribed, which hid the
+   IAP from the reviewer → `scripts/reviewer-account.sql` sets Level 4,
+   NOT subscribed.
+2. **Build 31 — Guideline 4, Design.** The Sign in with Apple button was
+   a hand-styled Pressable with no  logo. Fixed by switching to
+   `AppleAuthentication.AppleAuthenticationButton` (Apple's native view)
+   and moving it above the Google button.
+3. **Build 32 — Guideline 4, Design.** Onboarding asked for a name that
+   Apple had already supplied. Fixed: `handleApple` now persists
+   `credential.fullName` (Apple sends it ONLY on first authorization)
+   and onboarding skips its name step when a name already exists.
+
+⚠️ RULE FOR FUTURE CHANGES: never add a field to onboarding that an
+auth provider already gives us, and never restyle the Apple button.
+
 ## 🚧 "UNABLE TO ADD FOR REVIEW" BLOCKERS (one-time account setup)
 
 App Store Connect refuses submission until these 5 are done. All are
