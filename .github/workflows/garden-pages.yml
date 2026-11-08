@@ -29,12 +29,15 @@ jobs:
           cache-dependency-path: garden/package-lock.json
       - run: npm ci
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
+      - if: github.ref_name == github.event.repository.default_branch
+        uses: actions/upload-pages-artifact@v3
         with:
           path: garden/dist
 
+  # Only the default branch may publish; other branches just check that it builds.
   deploy:
     needs: build
+    if: github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     environment:
       name: github-pages
