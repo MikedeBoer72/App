@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { mulberry32 } from './noise';
 import { barkTexture, birchBarkTexture, leafTexture, needleTexture } from './textures';
 import { windify } from './wind';
+import { registerFoliage, type FoliageRole } from './seasons';
 
 type Rnd = () => number;
 
@@ -99,7 +100,7 @@ function grow(spec: TreeSpec, rnd: Rnd) {
 function leafCards(
   spots: LeafSpot[],
   tex: THREE.Texture,
-  color: THREE.ColorRepresentation,
+  role: FoliageRole,
   variance: number,
   rnd: Rnd,
   windStrength: number,
@@ -122,17 +123,14 @@ function leafCards(
   const q = new THREE.Quaternion();
   const e = new THREE.Euler();
   const s = new THREE.Vector3();
-  const base = new THREE.Color(color);
-  const c = new THREE.Color();
   spots.forEach((sp, i) => {
     e.set(rnd() * Math.PI, rnd() * Math.PI * 2, rnd() * Math.PI);
     q.setFromEuler(e);
     s.setScalar(sp.s);
     m.compose(sp.p, q, s);
     mesh.setMatrixAt(i, m);
-    c.copy(base).offsetHSL((rnd() - 0.5) * 0.04, (rnd() - 0.5) * 0.1, (rnd() - 0.5) * variance);
-    mesh.setColorAt(i, c);
   });
+  registerFoliage(mesh, role, variance, rnd);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   mesh.computeBoundingSphere();
@@ -173,7 +171,7 @@ export function buildTree(kind: 'birch' | 'oak' | 'cherry' | 'pine', seed: numbe
       }
     }
     group.add(woodMesh(wood, barkTexture(), '#9a8a7a'));
-    group.add(leafCards(spots, needleTexture(), '#33502c', 0.08, rnd, 0.03, 8));
+    group.add(leafCards(spots, needleTexture(), 'pine', 0.08, rnd, 0.03, 8));
     return group;
   }
 
@@ -187,8 +185,7 @@ export function buildTree(kind: 'birch' | 'oak' | 'cherry' | 'pine', seed: numbe
   const bark = kind === 'birch' ? birchBarkTexture() : barkTexture();
   group.add(woodMesh(wood, bark, kind === 'cherry' ? '#8a6f66' : '#ffffff'));
   const leafTex = leafTexture(kind === 'cherry' ? 'blossom' : kind === 'birch' ? 'small' : 'broad');
-  const color = kind === 'birch' ? '#a1b45a' : kind === 'oak' ? '#4f6d2c' : '#f3c6d3';
-  group.add(leafCards(leaves, leafTex, color, kind === 'cherry' ? 0.05 : 0.12, rnd, 0.06, 6));
+  group.add(leafCards(leaves, leafTex, kind, kind === 'cherry' ? 0.05 : 0.12, rnd, 0.06, 6));
   return group;
 }
 
@@ -210,7 +207,7 @@ export function buildBush(seed: number): THREE.Group {
     const p = new THREE.Vector3(Math.cos(a) * Math.cos(el) * R, Math.sin(el) * R * 1.05 + 0.2, Math.sin(a) * Math.cos(el) * R);
     blossoms.push({ p, s: 0.28 + rnd() * 0.12 });
   }
-  group.add(leafCards(spots, leafTexture('broad'), '#466a2d', 0.12, rnd, 0.05, 1.5));
-  group.add(leafCards(blossoms, leafTexture('blossom'), '#f4efdc', 0.03, rnd, 0.06, 1.5));
+  group.add(leafCards(spots, leafTexture('broad'), 'bush', 0.12, rnd, 0.05, 1.5));
+  group.add(leafCards(blossoms, leafTexture('blossom'), 'bushBloom', 0.03, rnd, 0.06, 1.5));
   return group;
 }

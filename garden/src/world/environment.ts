@@ -22,17 +22,17 @@ interface Preset {
 
 const PRESETS: Record<Exclude<TimeOfDay, 'live'>, Preset> = {
   morning: {
-    elevation: 9, azimuth: 115, sunColor: '#ffd8a8', sunIntensity: 2.6,
+    elevation: 9, azimuth: 70, sunColor: '#ffd8a8', sunIntensity: 2.6,
     hemiSky: '#bcd2ec', hemiGround: '#4a5a32', hemiIntensity: 0.9,
     fog: '#d9dccf', fogDensity: 0.0125, turbidity: 6, rayleigh: 2.2, exposure: 0.62, night: 0,
   },
   day: {
-    elevation: 42, azimuth: 165, sunColor: '#fff3df', sunIntensity: 3.0,
+    elevation: 42, azimuth: 25, sunColor: '#fff3df', sunIntensity: 3.0,
     hemiSky: '#b7cff0', hemiGround: '#4f6233', hemiIntensity: 1.0,
     fog: '#bfd0e0', fogDensity: 0.0075, turbidity: 2.2, rayleigh: 1.1, exposure: 0.42, night: 0,
   },
   evening: {
-    elevation: 5, azimuth: 250, sunColor: '#ffb070', sunIntensity: 2.4,
+    elevation: 5, azimuth: 290, sunColor: '#ffb070', sunIntensity: 2.4,
     hemiSky: '#9fa9c9', hemiGround: '#4a4428', hemiIntensity: 0.75,
     fog: '#e3c3a2', fogDensity: 0.011, turbidity: 8, rayleigh: 2.6, exposure: 0.6, night: 0.15,
   },
@@ -60,6 +60,7 @@ export class Environment {
   sunDir = new THREE.Vector3();
   current: Exclude<TimeOfDay, 'live'> | null = null;
   night = 0;
+  baseHemi = 1;
   private pmrem: THREE.PMREMGenerator;
   private envRT: THREE.WebGLRenderTarget | null = null;
 
@@ -98,11 +99,30 @@ export class Environment {
     this.pmrem = new THREE.PMREMGenerator(renderer);
   }
 
-  apply(t: TimeOfDay) {
+  storm = false;
+  private appliedKey = '';
+
+  apply(t: TimeOfDay, storm = this.storm) {
     const key = resolveTime(t);
-    if (key === this.current) return;
+    this.storm = storm;
+    const full = key + (storm ? '-storm' : '');
+    if (full === this.appliedKey) return;
+    this.appliedKey = full;
     this.current = key;
-    const p = PRESETS[key];
+    const p = { ...PRESETS[key] };
+    if (storm) {
+      // Overcast and dim: the sun is hidden behind heavy cloud.
+      p.sunIntensity *= 0.22;
+      p.sunColor = '#c9d2dc';
+      p.hemiSky = p.night > 0.5 ? '#2a3140' : '#8b949c';
+      p.hemiGround = '#2e3328';
+      p.hemiIntensity *= p.night > 0.5 ? 0.8 : 1.1;
+      p.fog = p.night > 0.5 ? '#151a22' : '#7d878d';
+      p.fogDensity *= 2.4;
+      p.turbidity = 18;
+      p.rayleigh = 0.4;
+      p.exposure *= 0.85;
+    }
     const u = this.sky.material.uniforms;
     u.turbidity.value = p.turbidity;
     u.rayleigh.value = p.rayleigh;
@@ -121,7 +141,7 @@ export class Environment {
     this.scene.fog = new THREE.FogExp2(p.fog, p.fogDensity);
     this.renderer.toneMappingExposure = p.exposure;
     this.night = p.night;
-    (this.stars.material as THREE.PointsMaterial).opacity = p.night * 0.9;
+    (this.stars.material as THREE.PointsMaterial).opacity = storm ? 0 : p.night * 0.9;
     // At night light comes from the moon, opposite-ish and higher than the sun.
     if (p.night > 0.5) this.sunDir.setFromSphericalCoords(1, THREE.MathUtils.degToRad(50), theta);
 
@@ -136,7 +156,8 @@ export class Environment {
     this.envRT?.dispose();
     this.envRT = this.pmrem.fromScene(envScene, 0.04);
     this.scene.environment = this.envRT.texture;
-    this.scene.environmentIntensity = p.night > 0.5 ? 0.15 : 0.35;
+    this.scene.environmentIntensity = (p.night > 0.5 ? 0.15 : 0.35) * (storm ? 0.6 : 1);
+    this.baseHemi = p.hemiIntensity;
     skyCopy.geometry.dispose();
     skyCopy.material.dispose();
   }
