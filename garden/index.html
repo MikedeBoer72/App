@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#1b2219" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Garden" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icon-180.png" />
+    <link rel="icon" type="image/png" href="icon-192.png" />
+    <title>Bloom Garden</title>
+  </head>
+  <body>
+    <div id="world"></div>
+    <div id="stick"><div id="stick-knob"></div></div>
+
+    <header class="hud">
+      <div class="hud-left glass" id="hud-status"></div>
+      <div class="hud-right">
+        <button class="icon-btn glass" id="btn-view" aria-label="Toggle bird's-eye view">◎</button>
+      </div>
+    </header>
+
+    <div class="zoom glass" id="zoom" hidden>
+      <button class="icon-btn" data-zoom="-1" aria-label="Zoom in">+</button>
+      <button class="icon-btn" data-zoom="1" aria-label="Zoom out">−</button>
+    </div>
+
+    <div class="place-bar glass" id="place-bar" hidden>
+      <div class="place-title" id="place-title"></div>
+      <div class="place-hint">Tap the ground to choose a spot. Walk or use the bird's-eye view to go further.</div>
+      <div class="place-actions">
+        <button class="btn ghost" id="place-rotate">↻ Rotate</button>
+        <button class="btn ghost" id="place-cancel">Cancel</button>
+        <button class="btn primary" id="place-confirm">Plant here</button>
+      </div>
+    </div>
+
+    <section class="sheet glass" id="sheet" data-state="peek">
+      <button class="grabber" id="grabber" aria-label="Expand or collapse"><span></span></button>
+      <nav class="tabs" id="tabs">
+        <button data-tab="today" class="active">Today</button>
+        <button data-tab="workout">Workout</button>
+        <button data-tab="progress">Progress</button>
+        <button data-tab="garden">Garden</button>
+      </nav>
+      <div class="sheet-body" id="panel"></div>
+    </section>
+
+    <div class="celebrate" id="celebrate" hidden></div>
+    <div class="toast" id="toast" hidden></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

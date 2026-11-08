@@ -1,0 +1,16 @@
+{
+  "name": "Bloom Garden",
+  "short_name": "Garden",
+  "description": "A garden that grows every day you keep your word.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1b2219",
+  "theme_color": "#1b2219",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
