@@ -42,6 +42,7 @@ export interface Placed {
 }
 
 export type TimeOfDay = 'live' | 'morning' | 'day' | 'evening' | 'night';
+export type SeasonSetting = 'live' | 'spring' | 'summer' | 'autumn' | 'winter';
 
 export interface State {
   version: 1;
@@ -49,7 +50,7 @@ export interface State {
   days: Record<string, DayEntry>;
   sessions: Record<string, Session>;
   placed: Placed[];
-  settings: { timeOfDay: TimeOfDay; quality: 'high' | 'battery' };
+  settings: { timeOfDay: TimeOfDay; quality: 'high' | 'battery'; season: SeasonSetting; sound: boolean };
 }
 
 const KEY = 'bloom-garden/v1';
@@ -61,7 +62,7 @@ function fresh(): State {
     days: {},
     sessions: {},
     placed: [],
-    settings: { timeOfDay: 'live', quality: 'high' },
+    settings: { timeOfDay: 'live', quality: 'high', season: 'live', sound: true },
   };
 }
 
@@ -214,6 +215,16 @@ export function wonDays(s: State): string[] {
   return Object.keys(s.days)
     .filter((k) => isWon(s, k))
     .sort();
+}
+
+/**
+ * Missed yesterday (after the start date)? Then today is stormy, until you
+ * win today, which brings a rainbow. Nothing in the garden is ever lost.
+ */
+export function weatherFor(s: State, today: string): 'clear' | 'storm' | 'rainbow' {
+  const y = addDays(today, -1);
+  if (y < s.startDate || isWon(s, y)) return 'clear';
+  return isWon(s, today) ? 'rainbow' : 'storm';
 }
 
 export function currentStreak(s: State): number {

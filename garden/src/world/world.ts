@@ -12,6 +12,8 @@ import { buildStartSign, glowMaterials, warmMaterials } from './props';
 import { butterflyTexture, glowTexture } from './textures';
 import { waterUniforms } from './water';
 import { windUniforms } from './wind';
+import { applySeason, currentSeason, unregisterFoliage, type Season } from './seasons';
+import { Clouds, FallingFoliage, Precip, Rainbow, type Weather } from './weather';
 
 const EYE = 1.65;
 const POSE_KEY = 'bloom-garden/pose';
@@ -61,6 +63,18 @@ export class World {
   private butterflies: { g: THREE.Group; wings: THREE.Mesh[]; target: THREE.Vector3; speed: number; phase: number }[] = [];
   private motes: THREE.Points;
 
+  // seasons & weather
+  private clouds: Clouds;
+  private precip: Precip;
+  private falling: FallingFoliage;
+  private rainbow: Rainbow;
+  season: Season = currentSeason();
+  weather: Weather = 'clear';
+  private nextBolt = 8;
+  private flash = 0;
+  /** Called when lightning strikes, with a 0..1 closeness. */
+  onLightning?: (closeness: number) => void;
+
   constructor(private container: HTMLElement, opts: WorldOptions) {
     const high = opts.quality === 'high';
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -94,6 +108,12 @@ export class World {
     this.scene.add(this.motes);
     this.makeButterflies(7);
 
+    this.clouds = new Clouds(this.scene);
+    this.precip = new Precip(this.scene);
+    this.falling = new FallingFoliage(this.scene);
+    this.rainbow = new Rainbow(this.scene);
+    this.setSeason(this.season);
+
     this.restorePose();
     this.bindInput();
     window.addEventListener('resize', () => this.resize());
@@ -111,7 +131,48 @@ export class World {
   // ---------- Public API ----------
 
   setTime(t: TimeOfDay) {
-    this.env.apply(t);
+    this.env.apply(t, this.weather === 'storm');
+  }
+
+  setSeason(s: Season) {
+    this.season = s;
+    applySeason(s);
+    this.ground.setSeason(s);
+    this.grass.setSeason(s);
+    this.falling.setSeason(s);
+    this.updatePrecip();
+  }
+
+  setWeather(w: Weather, t: TimeOfDay, instant = false) {
+    this.weather = w;
+    if (instant) {
+      this.clouds.uniforms.uCover.value = w === 'storm' ? 0.97 : 0.36;
+      this.clouds.uniforms.uDark.value = w === 'storm' ? 1 : 0;
+      this.rainbow.snap(w === 'rainbow');
+    }
+    this.env.apply(t, w === 'storm');
+    this.updatePrecip();
+  }
+
+  private updatePrecip() {
+    this.precip.set(this.weather === 'storm' ? 'rain' : this.season === 'winter' ? 'snow' : 'none');
+  }
+
+  /** Distances from the listener to the nearest waterfall and pond (for sound). */
+  waterDistances(): { waterfall: number; pond: number } {
+    const at = this.mode === 'walk' ? this.camPos : this.camTarget;
+    let waterfall = Infinity;
+    let pond = Infinity;
+    for (const live of this.items.values()) {
+      const k = live.placed.kind;
+      if (k !== 'waterfall' && k !== 'pond') continue;
+      const d = Math.hypot(live.placed.x - at.x, live.placed.z - at.z);
+      if (k === 'waterfall') waterfall = Math.min(waterfall, d);
+      else pond = Math.min(pond, d);
+    }
+    // in the bird's-eye view everything sounds a bit further away
+    const extra = this.mode === 'overview' ? this.overviewZoom * 0.6 : 0;
+    return { waterfall: waterfall + extra, pond: pond + extra };
   }
 
   setHouseLevel(level: number) {
@@ -131,6 +192,7 @@ export class World {
     for (const [tok, live] of this.items) {
       if (!want.has(tok)) {
         this.scene.remove(live.built.object);
+        unregisterFoliage(live.built.object);
         this.items.delete(tok);
       }
     }
@@ -200,7 +262,10 @@ export class World {
   }
 
   cancelPlacing() {
-    if (this.ghost) this.scene.remove(this.ghost);
+    if (this.ghost) {
+      this.scene.remove(this.ghost);
+      unregisterFoliage(this.ghost);
+    }
     this.ghost = null;
     this.placing = null;
     this.ghostRing.visible = false;
@@ -399,6 +464,14 @@ export class World {
 
   private flowerSpots: THREE.Vector3[] = [];
   private retargetButterflies() {
+    const emitters: { p: THREE.Vector3; r: number; h: number }[] = [];
+    for (const live of this.items.values()) {
+      const k = live.placed.kind;
+      if (k === 'birch' || k === 'oak' || k === 'cherry') {
+        emitters.push({ p: live.built.object.position.clone(), r: k === 'oak' ? 3.5 : 2.5, h: k === 'cherry' ? 4.5 : 7 });
+      }
+    }
+    this.falling.setEmitters(emitters);
     this.flowerSpots = [];
     for (const live of this.items.values()) {
       if (live.placed.kind === 'flower' || live.placed.kind === 'bush' || live.placed.kind === 'cherry') {
@@ -528,7 +601,41 @@ export class World {
     waterUniforms.uSunColor.value.copy(this.env.sun.color).multiplyScalar(night > 0.5 ? 0.3 : 1);
     waterUniforms.uSky.value.copy(this.env.hemi.color);
     waterUniforms.uNight.value = night;
-    for (const m of warmMaterials) m.emissiveIntensity = night * 1.8 + 0.05;
+    const gloom = this.weather === 'storm' ? 0.55 : 0;
+    for (const m of warmMaterials) m.emissiveIntensity = Math.max(night, gloom) * 1.8 + 0.05;
+
+    // clouds, rain/snow, falling leaves, rainbow, lightning
+    const cu = this.clouds.uniforms;
+    const storm = this.weather === 'storm';
+    cu.uCover.value += ((storm ? 0.97 : 0.36) - cu.uCover.value) * Math.min(1, dt * 0.5);
+    cu.uDark.value += ((storm ? 1 : 0) - cu.uDark.value) * Math.min(1, dt * 0.5);
+    cu.uSun.value.copy(this.env.sun.color);
+    cu.uSky.value.copy(this.env.hemi.color);
+    cu.uSunDir.value.copy(this.env.sunDir);
+    cu.uNight.value = night;
+    this.clouds.mesh.position.set(focus.x, 0, focus.z);
+    this.precip.update(focus, groundY(focus.x, focus.z), dt, t);
+    this.falling.update(dt, t);
+    this.rainbow.update(this.weather === 'rainbow' && night < 0.5, focus, this.env.sunDir, dt);
+    if (storm) {
+      this.nextBolt -= dt;
+      if (this.nextBolt <= 0) {
+        this.nextBolt = 7 + Math.random() * 16;
+        this.flash = 1;
+        this.onLightning?.(Math.random());
+      }
+    }
+    if (this.flash > 0) {
+      // double flicker
+      const f = this.flash;
+      const flick = f > 0.75 ? 1 : f > 0.6 ? 0.2 : f > 0.4 ? 0.8 : f * 0.6;
+      cu.uFlash.value = flick;
+      this.env.hemi.intensity = this.env.baseHemi * (1 + flick * 3);
+      this.flash = Math.max(0, this.flash - dt * 2.2);
+      if (this.flash === 0) this.env.hemi.intensity = this.env.baseHemi;
+    } else {
+      cu.uFlash.value = 0;
+    }
     for (const m of glowMaterials) m.opacity = night * 0.9;
     if (focus.distanceToSquared(this.lastHoleRefresh) > 25) {
       this.lastHoleRefresh.copy(focus);

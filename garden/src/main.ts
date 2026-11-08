@@ -1,9 +1,13 @@
 import './ui/styles.css';
 import { LANDMARK_NAMES, FLOWER_NAMES, Split, TaskId, houseLevelFor, splitFor, tasksFor } from './data/config';
 import { addDays, prettyDate, todayKey } from './data/dates';
-import { State, inventory, isWon, store, wonDays } from './data/store';
+import { State, inventory, isWon, store, weatherFor, wonDays } from './data/store';
 import { Metric, chartData, garden, groupInventory, hud, progress, today, workout, MAX_BACK_DAYS } from './ui/panels';
 import { World } from './world/world';
+import { sound } from './audio';
+import { resolveTime } from './world/environment';
+import { seasonFor, type Season } from './world/seasons';
+import type { Weather } from './world/weather';
 
 type Tab = 'today' | 'workout' | 'progress' | 'garden';
 
@@ -20,13 +24,22 @@ const ui = {
 
 // ---------- World ----------
 
+// Optional preview overrides, e.g. ?season=winter&weather=storm
+const params = new URLSearchParams(location.search);
+const seasonNow = (): Season =>
+  (params.get('season') as Season) ||
+  (store.state.settings.season === 'live' ? seasonFor() : store.state.settings.season);
+const weatherNow = (): Weather => (params.get('weather') as Weather) || weatherFor(store.state, todayKey());
+
 let world: World | null = null;
 try {
   world = new World($('world'), {
     quality: store.state.settings.quality,
     startLines: ['Day one', prettyDate(store.state.startDate), 'The day I woke up.'],
   });
-  world.setTime(store.state.settings.timeOfDay);
+  world.setSeason(seasonNow());
+  world.setWeather(weatherNow(), store.state.settings.timeOfDay, true);
+  world.onLightning = (c) => sound.thunder(c);
   world.setHouseLevel(houseLevelFor(wonDays(store.state).length));
   world.sync(store.state.placed);
 } catch (err) {
@@ -35,7 +48,31 @@ try {
 }
 
 // keep the "live" light in step with the clock
-setInterval(() => world?.setTime(store.state.settings.timeOfDay), 60_000);
+setInterval(() => {
+  world?.setTime(store.state.settings.timeOfDay);
+  if (world && world.season !== seasonNow()) world.setSeason(seasonNow());
+}, 60_000);
+
+// ---------- Sound ----------
+
+sound.setEnabled(store.state.settings.sound);
+const unlockAudio = () => {
+  if (store.state.settings.sound) sound.unlock();
+};
+window.addEventListener('pointerdown', unlockAudio, true);
+window.addEventListener('touchend', unlockAudio, true);
+document.addEventListener('visibilitychange', () => (document.hidden ? sound.suspend() : sound.resume()));
+setInterval(() => {
+  if (!world) return;
+  const d = world.waterDistances();
+  sound.setScene({
+    tod: resolveTime(store.state.settings.timeOfDay),
+    season: world.season,
+    weather: world.weather,
+    waterfall: d.waterfall,
+    pond: d.pond,
+  });
+}, 300);
 
 // ---------- Sheet ----------
 
@@ -195,7 +232,10 @@ function setTask(day: string, id: TaskId, value: boolean) {
   const before = isWon(store.state, day);
   store.setTask(day, id, value);
   const after = isWon(store.state, day);
-  if (!before && after) celebrate(day);
+  if (!before && after) {
+    celebrate(day);
+    sound.chime('win');
+  }
   else if (value) toast(`+1 ${FLOWER_NAMES[taskFlower(id)].toLowerCase()} to plant`);
 }
 
@@ -270,6 +310,20 @@ panel.addEventListener('click', (e) => {
   }
   const plant = q('[data-plant]');
   if (plant) return beginPlant(plant.dataset.plant!);
+  const season = q('[data-season]');
+  if (season) {
+    store.update((s) => (s.settings.season = season.dataset.season as State['settings']['season']));
+    world?.setSeason(seasonNow());
+    return;
+  }
+  const snd = q('[data-sound]');
+  if (snd) {
+    const on = snd.dataset.sound === 'on';
+    store.update((s) => (s.settings.sound = on));
+    if (on) sound.unlock();
+    sound.setEnabled(on);
+    return;
+  }
   const tod = q('[data-tod]');
   if (tod) {
     store.update((s) => (s.settings.timeOfDay = tod.dataset.tod as State['settings']['timeOfDay']));
@@ -364,6 +418,7 @@ $('place-confirm').addEventListener('click', () => {
     store.place({ token: tok.token, kind: tok.kind, species: tok.species, x: spot.x, z: spot.z, rot: spot.rot, seed: (world as any)._seed });
   }
   endPlant();
+  sound.chime('plant');
   const left = inventory(store.state).length;
   toast(left ? `Planted. ${left} more waiting.` : 'Planted. Your garden grows.');
 });
@@ -422,6 +477,7 @@ async function importBackup(f?: File) {
 
 store.subscribe((s) => {
   world?.sync(s.placed);
+  if (world && world.weather !== weatherNow()) world.setWeather(weatherNow(), s.settings.timeOfDay);
   world?.setHouseLevel(houseLevelFor(wonDays(s).length));
   render();
 });
@@ -433,6 +489,7 @@ setInterval(() => {
   if (now !== lastToday) {
     if (ui.day === lastToday) ui.day = now;
     lastToday = now;
+    world?.setWeather(weatherNow(), store.state.settings.timeOfDay);
     render(true);
   }
 }, 30_000);

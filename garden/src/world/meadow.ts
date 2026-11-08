@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { fbm, groundY, GROUND_GLSL } from './noise';
 import { windUniforms } from './wind';
+import { MEADOW, currentSeason, type Season } from './seasons';
 
 const GROUND_SIZE = 700;
 const GROUND_SEGS = 160;
@@ -11,6 +12,15 @@ const GROUND_SEGS = 160;
 export class Ground {
   mesh: THREE.Mesh;
   private center = new THREE.Vector2(Infinity, Infinity);
+  private season: Season = currentSeason();
+  private last = new THREE.Vector3();
+
+  setSeason(s: Season) {
+    if (s === this.season) return;
+    this.season = s;
+    this.center.set(Infinity, Infinity);
+    this.follow(this.last);
+  }
 
   constructor(scene: THREE.Scene) {
     const geo = new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE, GROUND_SEGS, GROUND_SEGS);
@@ -25,6 +35,7 @@ export class Ground {
 
   /** Re-centre under the viewer when they have walked far enough. */
   follow(p: THREE.Vector3) {
+    this.last.copy(p);
     const step = GROUND_SIZE / GROUND_SEGS;
     if (Math.abs(p.x - this.center.x) < 60 && Math.abs(p.z - this.center.y) < 60) return;
     const cx = Math.round(p.x / step) * step;
@@ -33,9 +44,10 @@ export class Ground {
     const geo = this.mesh.geometry as THREE.PlaneGeometry;
     const pos = geo.attributes.position as THREE.BufferAttribute;
     const col = geo.attributes.color as THREE.BufferAttribute;
-    const base = new THREE.Color('#3f5a26');
-    const dry = new THREE.Color('#7a7a3c');
-    const lush = new THREE.Color('#2c4a1c');
+    const [g0, g1, g2] = MEADOW[this.season].ground;
+    const base = new THREE.Color(g0);
+    const dry = new THREE.Color(g1);
+    const lush = new THREE.Color(g2);
     const c = new THREE.Color();
     const params = geo.parameters;
     let i = 0;
@@ -122,6 +134,12 @@ export class Grass {
           uSunColor: { value: new THREE.Color('#fff') },
           uSkyColor: { value: new THREE.Color('#9bb') },
           uHoles: { value: this.holes },
+          uMidA: { value: new THREE.Vector3() },
+          uMidB: { value: new THREE.Vector3() },
+          uTipA: { value: new THREE.Vector3() },
+          uTipB: { value: new THREE.Vector3() },
+          uSnow: { value: 0 },
+          uHeight: { value: 1 },
         },
       ]),
       vertexShader: /* glsl */ `
@@ -131,6 +149,7 @@ export class Grass {
         uniform float uTile;
         uniform float uTime;
         uniform vec4 uHoles[${MAX_HOLES}];
+        uniform float uHeight;
         attribute vec2 aOffset;
         attribute float aRand;
         varying float vY;
@@ -152,7 +171,7 @@ export class Grass {
           }
           float patchN = vn(wp * 0.09);
           vPatch = patchN;
-          float height = (0.13 + 0.24 * aRand + 0.18 * patchN) * fade * hole;
+          float height = (0.13 + 0.24 * aRand + 0.18 * patchN) * fade * hole * uHeight;
           float ang = aRand * 6.2831 + h21(wp) * 3.0;
           vec3 p = position;
           float y = p.y;
@@ -181,20 +200,24 @@ export class Grass {
         uniform vec3 uSunDir;
         uniform vec3 uSunColor;
         uniform vec3 uSkyColor;
+        uniform vec3 uMidA, uMidB, uTipA, uTipB;
+        uniform float uSnow;
         varying float vY;
         varying float vRand;
         varying vec3 vNormal2;
         varying float vPatch;
         void main() {
           vec3 rootC = vec3(0.06, 0.12, 0.03);
-          vec3 midC = mix(vec3(0.17, 0.30, 0.07), vec3(0.24, 0.33, 0.08), vPatch);
-          vec3 tipC = mix(vec3(0.42, 0.52, 0.17), vec3(0.58, 0.55, 0.24), vRand * vPatch);
+          vec3 midC = mix(uMidA, uMidB, vPatch);
+          vec3 tipC = mix(uTipA, uTipB, vRand * vPatch);
           vec3 col = mix(rootC, midC, smoothstep(0.0, 0.5, vY));
           col = mix(col, tipC, smoothstep(0.45, 1.0, vY));
           float diff = max(dot(normalize(vNormal2), normalize(uSunDir)), 0.0) * 0.6 + 0.4;
           float trans = pow(vY, 2.0) * 0.35; // light through the tips
           vec3 lit = col * (uSkyColor * 0.55 + uSunColor * diff * 0.75) + col * uSunColor * trans;
           lit *= 0.65 + 0.35 * vY; // self-shadowing near the roots
+          vec3 snowLit = vec3(0.86, 0.9, 0.95) * (uSkyColor * 0.6 + uSunColor * diff * 0.6);
+          lit = mix(lit, snowLit, uSnow * (0.55 + 0.45 * smoothstep(0.0, 0.9, vY)) * (0.7 + 0.3 * vRand));
           gl_FragColor = vec4(lit, 1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
@@ -204,9 +227,21 @@ export class Grass {
     });
     this.material.uniforms.uTime = windUniforms.uTime;
 
+    this.setSeason(currentSeason());
     this.mesh = new THREE.Mesh(geo, this.material);
     this.mesh.frustumCulled = false;
     scene.add(this.mesh);
+  }
+
+  setSeason(s: Season) {
+    const m = MEADOW[s];
+    const u = this.material.uniforms;
+    u.uMidA.value.fromArray(m.midA);
+    u.uMidB.value.fromArray(m.midB);
+    u.uTipA.value.fromArray(m.tipA);
+    u.uTipB.value.fromArray(m.tipB);
+    u.uSnow.value = m.snow;
+    u.uHeight.value = m.height;
   }
 
   setHoles(list: { x: number; z: number; r: number }[]) {

@@ -14,7 +14,9 @@ A calm 3D garden that grows every day you keep your word. Built as an iPhone web
 - **Every task you tick grows one flower.** Each task has its own flower: workout = red poppy, clean = daisy, coffee only = lavender, KZBB = sunflower, Jumbo = cornflower, reflect = foxglove, walk = wild tulip.
 - **Winning a day** (all tasks done) unlocks a landmark: birch, boulders, elderflower bush, oak, stone lantern, pine, bench and cherry blossom. Every 5th won day brings a lily pond and every 10th a waterfall.
 - **The house** grows with your total won days: a plot, then a cottage at 3, a porch at 7, a chimney and fence at 14, a second wing at 30, a greenhouse at 60 and a tower at 100. It never shrinks.
-- **A missed day takes nothing away.** Only the streak resets.
+- **A missed day takes nothing away.** Only the streak resets. The next day starts with a storm (rain, lightning, thunder). Win that day and the sky clears with a rainbow.
+- **Seasons follow the calendar.** Spring brings cherry blossom and falling petals, summer is green and golden, autumn turns the trees yellow and orange with falling leaves, and winter brings snow and bare branches. You can preview a season under Garden → Season.
+- **Sound:** every sound is generated in code: wind, birds by day, crickets at night, the waterfall and pond getting louder as you walk closer, rain, thunder, and a chime when you plant something or win the day. It can be switched off under Garden → Sound. On iPhone, the silent switch mutes it.
 - You can fix the last 7 days if you forgot to tick something.
 
 ## Workouts

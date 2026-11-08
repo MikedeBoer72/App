@@ -25,6 +25,7 @@ import {
   store,
   summarize,
   wonDays,
+  weatherFor,
   type SetEntry,
   type Token,
 } from '../data/store';
@@ -85,7 +86,15 @@ export function today(s: State, day: string): string {
     })
     .join('');
 
+  const wx = isToday ? weatherFor(s, day) : 'clear';
+  const wxNote =
+    wx === 'storm'
+      ? `<div class="card" style="border-color:rgba(160,175,190,.4)"><b>⛈ A storm over the garden.</b> <span class="muted">Yesterday slipped. Nothing was lost. Win today and the sky clears.</span></div>`
+      : wx === 'rainbow'
+        ? `<div class="card won"><b>🌈 You came back.</b> <span class="muted">The storm has passed. That is what a top seller does.</span></div>`
+        : '';
   return `
+    ${wxNote}
     <div class="row">
       <div style="flex:1">
         <h2>${isToday ? 'Today' : weekdayName(day)}</h2>
@@ -322,6 +331,20 @@ export function garden(s: State): string {
         .map((t) => `<button class="chip ${tod === t ? 'on' : ''}" data-tod="${t}">${t === 'live' ? 'Follow the clock' : t[0].toUpperCase() + t.slice(1)}</button>`)
         .join('')}
     </div>
+
+    <h3>Season</h3>
+    <div class="chips">
+      ${(['live', 'spring', 'summer', 'autumn', 'winter'] as const)
+        .map((t) => `<button class="chip ${s.settings.season === t ? 'on' : ''}" data-season="${t}">${t === 'live' ? 'Follow the calendar' : t[0].toUpperCase() + t.slice(1)}</button>`)
+        .join('')}
+    </div>
+
+    <h3>Sound</h3>
+    <div class="chips">
+      <button class="chip ${s.settings.sound ? 'on' : ''}" data-sound="on">On</button>
+      <button class="chip ${!s.settings.sound ? 'on' : ''}" data-sound="off">Off</button>
+    </div>
+    <p class="muted" style="margin-top:8px">Birds, wind, water, rain and crickets. On iPhone, turn off the silent switch to hear them.</p>
 
     <h3>Options</h3>
     <div class="chips" style="margin-bottom:10px">
